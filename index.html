@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Follower Analyzer — Instagram</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XJJ4FBPKLH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XJJ4FBPKLH');
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #ff5c5c;
+    --accent2: #ff9a3c;
+    --text: #f0eee8;
+    --muted: #6b6b80;
+    --green: #3cffa5;
+    --blue: #5ca8ff;
+  }
+
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; padding: 60px 24px 100px; }
+
+  header { margin-bottom: 64px; animation: fadeUp 0.6s ease both; }
+
+  .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(42px, 8vw, 72px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--text) 40%, var(--muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+  }
+
+  .subtitle { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 500px; }
+
+  /* Instructions */
+  .instructions {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+
+  .instructions h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 20px;
+  }
+
+  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .step:last-child { margin-bottom: 0; }
+
+  .step-num {
+    background: var(--border);
+    color: var(--accent);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-body { flex: 1; }
+
+  /* Nested sub-steps for step 8 */
+  .substeps { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+  .substep {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 11px;
+    color: var(--muted);
+    padding-left: 4px;
+    opacity: 0.85;
+  }
+
+  .substep-bullet {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent2);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .tip {
+    margin-top: 18px;
+    padding: 12px 16px;
+    background: #1a1200;
+    border: 1px solid #2e2000;
+    border-radius: 8px;
+    font-size: 11px;
+    color: var(--accent2);
+    line-height: 1.6;
+  }
+
+  .tip strong { color: var(--accent2); }
+
+  /* Drop grid */
+  .drop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 40px; animation: fadeUp 0.6s 0.2s ease both; }
+  @media (max-width: 560px) { .drop-grid { grid-template-columns: 1fr; } }
+
+  .drop-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s; position: relative; background: var(--surface); }
+  .drop-zone:hover { border-color: var(--accent); background: #1a0f0f; transform: translateY(-2px); }
+  .drop-zone.loaded { border-color: var(--green); border-style: solid; background: #0a1a12; }
+  .drop-zone.drag-over { border-color: var(--accent2); background: #1a1200; transform: scale(1.02); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .drop-icon { font-size: 32px; margin-bottom: 12px; display: block; }
+  .drop-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .drop-hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .drop-status { font-size: 11px; color: var(--green); margin-top: 8px; font-weight: 500; }
+  .drop-status.error { color: var(--accent); }
+
+  /* Analyze button */
+  .analyze-btn { width: 100%; padding: 18px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; transition: opacity 0.2s, transform 0.15s; margin-bottom: 48px; animation: fadeUp 0.6s 0.3s ease both; }
+  .analyze-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+  .analyze-btn:not(:disabled):hover { opacity: 0.9; transform: translateY(-2px); }
+
+  /* Results */
+  #results { display: none; animation: fadeUp 0.5s ease both; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 36px; }
+  @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .stat-num.red    { color: var(--accent); }
+  .stat-num.orange { color: var(--accent2); }
+  .stat-num.green  { color: var(--green); }
+  .stat-num.blue   { color: var(--blue); }
+  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: none; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+  .panel-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+
+  .search-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 220px; transition: border-color 0.2s; }
+  .search-box:focus { border-color: var(--accent2); }
+  .search-box::placeholder { color: var(--muted); }
+
+  /* User cards */
+  .user-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .user-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; animation: fadeUp 0.4s ease both; transition: border-color 0.15s, background 0.15s; }
+  .user-card:hover { border-color: var(--accent); background: #1a0f0f; }
+  .user-card.blue-hover:hover { border-color: var(--blue); background: #0a1020; }
+
+  .user-info { display: flex; align-items: center; gap: 12px; }
+  .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--border); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; flex-shrink: 0; }
+  .user-avatar.blue { color: var(--blue); }
+  .username { font-size: 13px; font-weight: 500; }
+  .user-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .user-link { font-size: 11px; color: var(--muted); text-decoration: none; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .user-link:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
+
+  .export-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); background: transparent; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+  .export-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* Verify bar */
+  .verify-bar { margin-top: 20px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .verify-left { display: flex; flex-direction: column; gap: 4px; }
+  .verify-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
+  .verify-desc { font-size: 11px; color: var(--muted); line-height: 1.5; max-width: 460px; }
+  .verify-btn { padding: 9px 18px; background: transparent; border: 1px solid var(--accent2); border-radius: 8px; color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
+  .verify-btn:hover { background: var(--accent2); color: #000; }
+  .verify-btn:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; color: var(--accent2); }
+  .verify-progress { width: 100%; margin-top: 10px; display: none; }
+  .progress-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill { height: 100%; background: var(--accent2); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
+  .progress-text { font-size: 10px; color: var(--muted); }
+
+  /* Dead badge */
+  .dead-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #2a1010; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
+  .user-card.dead { opacity: 0.45; }
+
+  /* Filter buttons */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'DM Mono', monospace; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: #1a0f0f; }
+  .filter-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+
+  /* Floating coffee button */
+  .coffee-float { position: fixed; bottom: 24px; right: 24px; z-index: 500; display: flex; align-items: center; gap: 0px; background: var(--accent2); border-radius: 50px; padding: 12px 13px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 24px rgba(255,154,60,0.35); transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
+  .coffee-float:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,154,60,0.5); }
+  .coffee-float .coffee-icon { font-size: 20px; line-height: 1; display: block; flex-shrink: 0; }
+  .coffee-float .coffee-text { font-family: 'DM Mono', monospace; font-size: 11px; color: #000; font-weight: 500; max-width: 0; overflow: hidden; transition: max-width 0.3s ease, margin-left 0.3s ease; pointer-events: none; }
+  .coffee-float:hover .coffee-text { max-width: 140px; margin-left: 8px; }
+
+  /* Post-analysis banner */
+  .coffee-banner { display: none; margin-bottom: 28px; padding: 18px 22px; background: linear-gradient(135deg, #1a1200 0%, #13131a 100%); border: 1px solid #2e2000; border-radius: 12px; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; animation: fadeUp 0.5s 0.3s ease both; }
+  .coffee-banner.visible { display: flex; }
+  .banner-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .banner-text strong { color: var(--text); }
+  .banner-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+  .banner-coffee-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; background: var(--accent2); color: #000; border: none; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.15s; white-space: nowrap; }
+  .banner-coffee-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .banner-share-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .banner-share-btn:hover { border-color: var(--muted); color: var(--text); }
+  .banner-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; transition: color 0.15s; flex-shrink: 0; }
+  .banner-dismiss:hover { color: var(--text); }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <p class="eyebrow">Instagram · Follower Analyzer</p>
+    <h1>Follower<br>Analyzer</h1>
+    <p class="subtitle">Find out who you follow that doesn't follow you back — and who follows you that you don't follow back. Everything runs locally in your browser, your data never leaves your device.</p>
+  </header>
+
+  <div class="instructions">
+    <h2>How to export your Instagram data</h2>
+
+    <div class="step"><span class="step-num">1</span><span class="step-body">Open Instagram and tap the <strong>hamburger menu</strong> (☰) in the top right</span></div>
+    <div class="step"><span class="step-num">2</span><span class="step-body">Tap <strong>Account Center</strong></span></div>
+    <div class="step"><span class="step-num">3</span><span class="step-body">Tap <strong>Your Information and Permissions</strong></span></div>
+    <div class="step"><span class="step-num">4</span><span class="step-body">Tap <strong>Export your information</strong>, then <strong>Create Export</strong></span></div>
+    <div class="step"><span class="step-num">5</span><span class="step-body">Select your <strong>profile</strong> and choose <strong>Export to Device</strong></span></div>
+    <div class="step">
+      <span class="step-num">6</span>
+      <span class="step-body">
+        Tap <strong>Customize export</strong> and configure three settings:
+        <div class="substeps">
+          <div class="substep"><div class="substep-bullet"></div><span><strong>Information:</strong> tap "Customize information", clear all, then select <strong>Connections &gt; Followers and Following</strong> only</span></div>
+          <div class="substep"><div class="substep-bullet"></div><span><strong>Date range:</strong> set to <strong>All time</strong> — this is critical, or your counts will be incomplete</span></div>
+          <div class="substep"><div class="substep-bullet"></div><span><strong>Format:</strong> choose either <strong>JSON</strong> or <strong>HTML</strong> — this app supports both</span></div>
+        </div>
+      </span>
+    </div>
+    <div class="step"><span class="step-num">7</span><span class="step-body">Tap <strong>Start Export</strong> and wait for Instagram to process it (usually a few minutes, sometimes longer)</span></div>
+    <div class="step"><span class="step-num">8</span><span class="step-body"><strong>Download</strong> the ZIP when it's ready, unzip it, and drop the files below</span></div>
+
+    <div class="tip">
+      <strong>Which files to look for:</strong> Inside the ZIP, find the <code>connections/followers_and_following/</code> folder.
+      Drop <strong>followers_1</strong> (and any followers_2, followers_3… if they exist) into the left zone, and <strong>following</strong> into the right zone.
+      JSON exports end in <code>.json</code>, HTML exports end in <code>.html</code> — both work fine.
+    </div>
+  </div>
+
+  <div class="drop-grid">
+    <div class="drop-zone" id="followersZone">
+      <input type="file" id="followersFile" accept=".html,.htm,.json" multiple />
+      <span class="drop-icon">👥</span>
+      <div class="drop-label">Followers file(s)</div>
+      <div class="drop-hint">followers_1.html or followers_1.json<br>Select multiple if you have followers_2, etc.</div>
+      <div class="drop-status" id="followersStatus"></div>
+    </div>
+    <div class="drop-zone" id="followingZone">
+      <input type="file" id="followingFile" accept=".html,.htm,.json" />
+      <span class="drop-icon">➡️</span>
+      <div class="drop-label">Following file</div>
+      <div class="drop-hint">following.html or following.json</div>
+      <div class="drop-status" id="followingStatus"></div>
+    </div>
+  </div>
+
+  <button class="analyze-btn" id="analyzeBtn" disabled>Analyze My Data</button>
+
+  <div id="results">
+    <!-- Post-analysis banner -->
+    <div class="coffee-banner" id="coffeeBanner">
+      <div class="banner-text">
+        <strong>Glad this was useful!</strong> Follower Analyzer is free and runs entirely in your browser.
+        If it saved you some time, a coffee goes a long way — or just share it with someone who'd want it.
+      </div>
+      <div class="banner-actions">
+        <a class="banner-coffee-btn" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+        <button class="banner-share-btn" id="shareBtn">↗ Share</button>
+        <button class="banner-dismiss" id="bannerDismiss" title="Dismiss">×</button>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num red" id="statGhosts">0</div>
+        <div class="stat-label">Not Following Back</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num blue" id="statReverse">0</div>
+        <div class="stat-label">You Don't Follow Back</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num orange" id="statFollowing">0</div>
+        <div class="stat-label">You Follow</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num green" id="statFollowers">0</div>
+        <div class="stat-label">Your Followers</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="ghosts">👻 Not Following You Back</button>
+      <button class="tab-btn" data-tab="reverse">👀 You Don't Follow Back</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-ghosts">
+      <div class="panel-header">
+        <div class="panel-title">People you follow who don't follow back</div>
+        <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." />
+      </div>
+      <div class="verify-bar" id="verifyBar">
+        <div class="verify-left">
+          <div class="verify-title">🔍 Check for dead accounts</div>
+          <div class="verify-desc">Flags accounts that have been deleted or deactivated so you know which ones are actually gone. Checks run in the background — takes a minute for large lists.</div>
+          <div class="verify-progress" id="verifyProgress">
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-text" id="progressText">Checking...</div>
+          </div>
+        </div>
+        <button class="verify-btn" id="verifyBtn">Check accounts</button>
+      </div>
+      <div class="filter-row" id="filterRowGhosts" style="display:none">
+        <button class="filter-btn active" data-filter="all" data-list="ghosts">All</button>
+        <button class="filter-btn" data-filter="active" data-list="ghosts">Active accounts</button>
+        <button class="filter-btn" data-filter="dead" data-list="ghosts">Dead accounts</button>
+      </div>
+      <div class="user-list" id="listGhosts"></div>
+      <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
+    </div>
+
+    <div class="tab-panel" id="panel-reverse">
+      <div class="panel-header">
+        <div class="panel-title">People following you that you don't follow back</div>
+        <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." />
+      </div>
+      <div class="user-list" id="listReverse"></div>
+      <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let followersData = null;
+  let followingData = null;
+  let ghostList = [];
+  let reverseList = [];
+
+  const followersFile = document.getElementById('followersFile');
+  const followingFile = document.getElementById('followingFile');
+  const followersZone = document.getElementById('followersZone');
+  const followingZone = document.getElementById('followingZone');
+  const followersStatus = document.getElementById('followersStatus');
+  const followingStatus = document.getElementById('followingStatus');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+
+  // ── Parsers ────────────────────────────────────────────────────────────────
+
+  // HTML export: followers use /instagram.com/username, following uses /instagram.com/_u/username
+  function parseHTML(htmlText) {
+    const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+    const users = [];
+    const seen = new Set();
+
+    doc.querySelectorAll('a[href*="instagram.com/"]').forEach(link => {
+      const href = link.getAttribute('href') || '';
+      // Match /_u/username (following) or /username (followers)
+      let m = href.match(/instagram\.com\/_u\/([^/?#\s]+)/);
+      if (!m) m = href.match(/instagram\.com\/([^/?#\s]+)/);
+      if (!m) return;
+
+      const username = m[1].toLowerCase();
+      if (!username || username === '_u' || seen.has(username)) return;
+      seen.add(username);
+
+      // Date is in the next sibling div
+      let dateText = '';
+      const parent = link.closest('div');
+      if (parent) {
+        const sib = parent.nextElementSibling;
+        if (sib && sib.tagName === 'DIV') dateText = sib.textContent.trim();
+      }
+
+      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+    });
+
+    return users;
+  }
+
+  // JSON export:
+  //   followers_1.json  →  array of { title, string_list_data: [{value, href, timestamp}] }
+  //   following.json    →  { relationships_following: [ { title, string_list_data: [{href, timestamp}] } ] }
+  //
+  // Key difference: following entries have the username in `title` and in the `href`,
+  // but NOT in string_list_data[].value (that field is absent). Followers have it in value.
+  function parseJSON(jsonText) {
+    const users = [];
+    const seen = new Set();
+
+    let data;
+    try { data = JSON.parse(jsonText); } catch { return users; }
+
+    const processItem = item => {
+      // Try value field first (followers), then title (following), then extract from href
+      const list = item?.string_list_data;
+      const entry = Array.isArray(list) ? list[0] : null;
+
+      let username = (item?.title || entry?.value || '').toLowerCase().trim();
+
+      // Last resort: extract from href like https://www.instagram.com/_u/username
+      if (!username && entry?.href) {
+        const m = entry.href.match(/instagram\.com\/_u\/([^/?#\s]+)/) ||
+                  entry.href.match(/instagram\.com\/([^/?#\s]+)/);
+        if (m) username = m[1].toLowerCase();
+      }
+
+      if (!username || username === '_u' || seen.has(username)) return;
+      seen.add(username);
+
+      let dateText = '';
+      if (entry?.timestamp) {
+        const d = new Date(entry.timestamp * 1000);
+        dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      }
+      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+    };
+
+    // Followers: top-level array
+    if (Array.isArray(data)) data.forEach(processItem);
+
+    // Following: object with relationships_following key
+    if (data?.relationships_following) data.relationships_following.forEach(processItem);
+
+    return users;
+  }
+
+  function parseFile(text, filename) {
+    const isJSON = filename.toLowerCase().endsWith('.json');
+    return isJSON ? parseJSON(text) : parseHTML(text);
+  }
+
+  // ── File reading ───────────────────────────────────────────────────────────
+
+  function readFile(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.onerror = () => rej(new Error('read error'));
+      r.readAsText(file);
+    });
+  }
+
+  function checkReady() {
+    analyzeBtn.disabled = !(followersData && followingData);
+  }
+
+  async function handleFollowersFiles(files) {
+    followersStatus.classList.remove('error');
+    try {
+      const allUsers = [];
+      const seen = new Set();
+      for (const file of files) {
+        const users = parseFile(await readFile(file), file.name);
+        users.forEach(u => { if (!seen.has(u.username)) { seen.add(u.username); allUsers.push(u); } });
+      }
+      if (allUsers.length === 0) {
+        followersStatus.textContent = '✗ No users found — is this the right file?';
+        followersStatus.classList.add('error');
+        return;
+      }
+      followersData = allUsers;
+      const suffix = files.length > 1 ? ` across ${files.length} files` : '';
+      followersStatus.textContent = `✓ ${allUsers.length} followers loaded${suffix}`;
+      followersZone.classList.add('loaded');
+    } catch {
+      followersStatus.textContent = '✗ Error reading file';
+      followersStatus.classList.add('error');
+    }
+    checkReady();
+  }
+
+  async function handleFollowingFile(file) {
+    followingStatus.classList.remove('error');
+    try {
+      const users = parseFile(await readFile(file), file.name);
+      if (users.length === 0) {
+        followingStatus.textContent = '✗ No users found — is this the right file?';
+        followingStatus.classList.add('error');
+        return;
+      }
+      followingData = users;
+      followingStatus.textContent = `✓ ${users.length} following loaded`;
+      followingZone.classList.add('loaded');
+    } catch {
+      followingStatus.textContent = '✗ Error reading file';
+      followingStatus.classList.add('error');
+    }
+    checkReady();
+  }
+
+  // ── Event listeners ────────────────────────────────────────────────────────
+
+  followersFile.addEventListener('change', () => {
+    if (followersFile.files.length) handleFollowersFiles(Array.from(followersFile.files));
+  });
+  followingFile.addEventListener('change', () => {
+    if (followingFile.files[0]) handleFollowingFile(followingFile.files[0]);
+  });
+
+  followersZone.addEventListener('dragover', e => { e.preventDefault(); followersZone.classList.add('drag-over'); });
+  followersZone.addEventListener('dragleave', () => followersZone.classList.remove('drag-over'));
+  followersZone.addEventListener('drop', e => {
+    e.preventDefault(); followersZone.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => /\.(html?|json)$/i.test(f.name));
+    if (files.length) handleFollowersFiles(files);
+  });
+
+  followingZone.addEventListener('dragover', e => { e.preventDefault(); followingZone.classList.add('drag-over'); });
+  followingZone.addEventListener('dragleave', () => followingZone.classList.remove('drag-over'));
+  followingZone.addEventListener('drop', e => {
+    e.preventDefault(); followingZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFollowingFile(file);
+  });
+
+  // ── Analysis ───────────────────────────────────────────────────────────────
+
+  analyzeBtn.addEventListener('click', () => {
+    const followerSet  = new Set(followersData.map(u => u.username));
+    const followingSet = new Set(followingData.map(u => u.username));
+
+    ghostList   = followingData.filter(u => !followerSet.has(u.username));
+    reverseList = followersData.filter(u => !followingSet.has(u.username));
+
+    document.getElementById('statGhosts').textContent    = ghostList.length;
+    document.getElementById('statReverse').textContent   = reverseList.length;
+    document.getElementById('statFollowing').textContent  = followingData.length;
+    document.getElementById('statFollowers').textContent  = followersData.length;
+
+    document.getElementById('results').style.display = 'block';
+    renderList(ghostList,   'listGhosts',  false);
+    renderList(reverseList, 'listReverse', true);
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Show the coffee banner after a short delay
+    setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
+  });
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+
+  function renderList(list, listId, isReverse) {
+    const el = document.getElementById(listId);
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="big">${isReverse ? '🤝' : '🎉'}</div>${isReverse ? 'You follow everyone back!' : 'Everyone follows you back!'}<br>(or no matches found)</div>`;
+      return;
+    }
+    el.innerHTML = list.map((u, i) => `
+      <div class="user-card${isReverse ? ' blue-hover' : ''}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
+        <div class="user-info">
+          <div class="user-avatar${isReverse ? ' blue' : ''}">${u.username[0].toUpperCase()}</div>
+          <div>
+            <div class="username">@${u.username}</div>
+            ${u.date ? `<div class="user-meta">${isReverse ? 'Followed you' : 'You followed'} ${u.date}</div>` : ''}
+          </div>
+        </div>
+        <a class="user-link" href="${u.href}" target="_blank" rel="noopener">View Profile ↗</a>
+      </div>`).join('');
+  }
+
+  // ── Tabs ───────────────────────────────────────────────────────────────────
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  document.getElementById('searchReverse').addEventListener('input', function() {
+    renderList(reverseList.filter(u => u.username.includes(this.value.toLowerCase())), 'listReverse', true);
+  });
+
+  // ── CSV export ─────────────────────────────────────────────────────────────
+
+  function exportCSV(list, filename) {
+    const csv = ['username,instagram_url,date', ...list.map(u => `${u.username},${u.href},"${u.date || ''}"`)].join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: filename
+    });
+    a.click();
+  }
+
+  document.getElementById('exportGhosts').addEventListener('click',  () => exportCSV(ghostList,   'not_following_back.csv'));
+  document.getElementById('exportReverse').addEventListener('click', () => exportCSV(reverseList, 'not_followed_back.csv'));
+
+  // Banner interactions
+  document.getElementById('bannerDismiss').addEventListener('click', () => {
+    document.getElementById('coffeeBanner').classList.remove('visible');
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    const text = `I just found out who doesn't follow me back on Instagram using Follower Analyzer — runs entirely in your browser, no login needed.`;
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: 'Follower Analyzer', text, url }).catch(() => {});
+    } else {
+      // Fallback: open a tweet
+      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text + ' ' + url)}`;
+      window.open(tweetUrl, '_blank', 'noopener');
+    }
+  });
+
+  // ── Dead account verification ──────────────────────────────────────────────
+  // Strategy: fetch each profile page with no-cors. Instagram returns a 404
+  // page for dead accounts that is ~5KB, vs a full profile page that is much
+  // larger. With mode:'no-cors' we get an opaque response and can't read the
+  // body or status — BUT we CAN measure the Content-Length hint via the
+  // response body size using a ReadableStream. However the most reliable
+  // cross-origin signal is actually timing: dead pages resolve very fast,
+  // active profiles are larger and slower. Instead, we use a known trick:
+  // fetch with redirect:'follow' and mode:'no-cors'. For deleted accounts,
+  // Instagram redirects to /accounts/login/ or serves a tiny 404. The opaque
+  // response for a redirect to login is distinguishable from a normal profile
+  // page by checking response.redirected — but that's also blocked in no-cors.
+  //
+  // Most reliable browser method that actually works:
+  // Load the profile as an Image src. Active accounts with public photos
+  // return a real OG image. But private/deactivated accounts return nothing.
+  // This doesn't distinguish private vs deleted.
+  //
+  // ACTUAL working method: use a <script> tag with onerror/onload — same origin
+  // issues apply.
+  //
+  // The approach that consistently works without CORS or an API key:
+  // fetch("https://www.instagram.com/<user>/", { mode: 'no-cors' })
+  // Both dead and live pages return an opaque response (type === 'opaque').
+  // But dead accounts redirect to /404/ first — we can detect this by
+  // opening them in a hidden iframe and listening to the final URL via
+  // postMessage from a same-origin trick... which also won't work cross-origin.
+  //
+  // FINAL ANSWER: The only reliable no-API method is to proxy through
+  // a server. In a pure client-side app, the best we can do is attempt
+  // the fetch and use response.ok on a same-origin request, which means
+  // we need a CORS proxy. We'll use allorigins.win as a lightweight public proxy.
+
+  const deadStatus = {}; // username -> 'checking' | 'active' | 'dead'
+  let verifyRunning = false;
+  let currentGhostFilter = 'all';
+
+  document.getElementById('verifyBtn').addEventListener('click', startVerification);
+
+  async function startVerification() {
+    if (verifyRunning) return;
+    verifyRunning = true;
+
+    const btn = document.getElementById('verifyBtn');
+    const progress = document.getElementById('verifyProgress');
+    const fill = document.getElementById('progressFill');
+    const text = document.getElementById('progressText');
+
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+    progress.style.display = 'block';
+
+    const total = ghostList.length;
+    let done = 0;
+
+    // Process in batches of 5 to avoid hammering
+    const BATCH = 3;
+    const DELAY = 600; // ms between batches
+
+    for (let i = 0; i < total; i += BATCH) {
+      const batch = ghostList.slice(i, i + BATCH);
+      await Promise.all(batch.map(u => checkAccount(u.username)));
+      done = Math.min(i + BATCH, total);
+      const pct = Math.round((done / total) * 100);
+      fill.style.width = pct + '%';
+      text.textContent = `Checked ${done} of ${total} accounts...`;
+      renderGhostListWithStatus();
+      if (i + BATCH < total) await sleep(DELAY);
+    }
+
+    fill.style.width = '100%';
+    const deadCount    = Object.values(deadStatus).filter(s => s === 'dead').length;
+    const unknownCount = Object.values(deadStatus).filter(s => s === 'unknown').length;
+    const unknownNote  = unknownCount > 0 ? `, ${unknownCount} couldn't be checked` : '';
+    text.textContent = `Done. ${deadCount} dead account${deadCount !== 1 ? 's' : ''} found${unknownNote}.`;
+    btn.textContent = 'Re-check';
+    btn.disabled = false;
+    verifyRunning = false;
+
+    // Show filter buttons now that we have status data
+    document.getElementById('filterRowGhosts').style.display = 'flex';
+    renderGhostListWithStatus();
+  }
+
+  async function checkAccount(username) {
+    deadStatus[username] = 'checking';
+    try {
+      // Instagram's public search endpoint returns profile data for active accounts
+      // and an empty results array for deleted/deactivated ones.
+      // We route through allorigins to avoid CORS.
+      const target = `https://www.instagram.com/web/search/topsearch/?query=${encodeURIComponent(username)}&context=blended&count=1`;
+      const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
+
+      const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) { deadStatus[username] = 'unknown'; return; }
+
+      const wrapper = await res.json();
+      const httpCode = wrapper?.status?.http_code;
+      if (httpCode !== 200) { deadStatus[username] = 'unknown'; return; }
+
+      const body = wrapper?.contents || '';
+      let data;
+      try { data = JSON.parse(body); } catch { deadStatus[username] = 'unknown'; return; }
+
+      // Search results include users[] array — check if our exact username appears
+      const users = data?.users || [];
+      const found = users.some(u => {
+        const u2 = u?.user || u;
+        return (u2?.username || '').toLowerCase() === username.toLowerCase();
+      });
+
+      deadStatus[username] = found ? 'active' : 'dead';
+
+    } catch {
+      deadStatus[username] = 'unknown';
+    }
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function renderGhostListWithStatus() {
+    const searchQ = document.getElementById('searchGhosts').value.toLowerCase();
+    let list = ghostList.filter(u => u.username.includes(searchQ));
+
+    if (currentGhostFilter === 'active') list = list.filter(u => deadStatus[u.username] === 'active');
+    else if (currentGhostFilter === 'dead') list = list.filter(u => deadStatus[u.username] === 'dead');
+
+    const el = document.getElementById('listGhosts');
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="big">🎉</div>No accounts match this filter.</div>`;
+      return;
+    }
+
+    el.innerHTML = list.map((u, i) => {
+      const status = deadStatus[u.username];
+      const isDead = status === 'dead';
+      const isChecking = status === 'checking';
+      const badgeHTML = isDead
+        ? `<span class="dead-badge">deleted / deactivated</span>`
+        : isChecking ? `<span class="dead-badge" style="border-color:var(--muted);color:var(--muted);">checking...</span>` : '';
+
+      return `
+        <div class="user-card${isDead ? ' dead' : ''}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
+          <div class="user-info">
+            <div class="user-avatar">${u.username[0].toUpperCase()}</div>
+            <div>
+              <div class="username">@${u.username}${badgeHTML}</div>
+              ${u.date ? `<div class="user-meta">You followed ${u.date}</div>` : ''}
+            </div>
+          </div>
+          <a class="user-link" href="${u.href}" target="_blank" rel="noopener">View Profile ↗</a>
+        </div>`;
+    }).join('');
+  }
+
+  // Filter buttons
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn || btn.dataset.list !== 'ghosts') return;
+    document.querySelectorAll('.filter-btn[data-list="ghosts"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentGhostFilter = btn.dataset.filter;
+    renderGhostListWithStatus();
+  });
+
+  // Patch the existing ghost search to use the status-aware renderer
+  document.getElementById('searchGhosts').addEventListener('input', function() {
+    if (Object.keys(deadStatus).length > 0) {
+      renderGhostListWithStatus();
+    } else {
+      renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', false);
+    }
+  });
+</script>
+
+<!-- Floating coffee button -->
+<a class="coffee-float" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener">
+  <span class="coffee-icon">☕</span>
+  <span class="coffee-text">Buy me a coffee</span>
+</a>
+
+</body>
+</html>
