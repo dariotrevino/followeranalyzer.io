@@ -3,7 +3,80 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Follower Analyzer — Instagram</title>
+<title>Follower Analyzer for Instagram — See Who Doesn't Follow You Back</title>
+
+<!-- Primary SEO -->
+<meta name="description" content="Free Instagram follower analyzer. Find out who doesn't follow you back and who you don't follow back. 100% private — everything runs in your browser, no login or upload required." />
+<meta name="keywords" content="instagram follower analyzer, who unfollowed me, who doesn't follow me back, instagram unfollowers, follower tracker, instagram non followers, free unfollow checker" />
+<meta name="author" content="Dario Trevino" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#0a0a0f" />
+<link rel="canonical" href="https://followeranalyzer.io/" />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Follower Analyzer" />
+<meta property="og:url" content="https://followeranalyzer.io/" />
+<meta property="og:title" content="Follower Analyzer for Instagram — See Who Doesn't Follow You Back" />
+<meta property="og:description" content="Find out who doesn't follow you back and who you don't follow back. 100% private — runs entirely in your browser. No login, no upload." />
+<meta property="og:image" content="https://followeranalyzer.io/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Follower Analyzer — see who doesn't follow you back, 100% private." />
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Follower Analyzer for Instagram — See Who Doesn't Follow You Back" />
+<meta name="twitter:description" content="Find out who doesn't follow you back — 100% private, runs entirely in your browser. No login, no upload." />
+<meta name="twitter:image" content="https://followeranalyzer.io/og-image.png" />
+
+<!-- Structured data -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Follower Analyzer",
+  "url": "https://followeranalyzer.io/",
+  "description": "Free, private Instagram follower analyzer that shows who doesn't follow you back and who you don't follow back. Runs entirely in your browser.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (web browser)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "browserRequirements": "Requires JavaScript. Works in any modern browser."
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is this safe? Do you see my data?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Follower Analyzer runs entirely in your browser. The files you drop in are read and compared locally on your device — they are never uploaded to any server, and we never see them." }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need my Instagram password or to log in?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. There is no login. You download your own data export from Instagram and drop the files here, so you never share your password." }
+    },
+    {
+      "@type": "Question",
+      "name": "Will Instagram know I used this, or notify anyone?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Nothing connects to Instagram on your behalf, so there is nothing to detect and no one is notified." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I get my Instagram data export?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Open Instagram, go to Account Center, Your Information and Permissions, Export your information, select Followers and Following, set the date range to All time, and choose JSON or HTML. Instagram emails you a download link." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it really free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, completely free with no account, ads, or limits." }
+    }
+  ]
+}
+</script>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XJJ4FBPKLH"></script>
 <script>
@@ -179,8 +252,17 @@
   .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
   .tab-btn:hover:not(.active) { color: var(--text); }
 
+  .tab-count { display: inline-block; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--border); border-radius: 20px; padding: 1px 8px; margin-left: 4px; vertical-align: middle; }
+  .tab-btn.active .tab-count { color: var(--accent); }
+
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  .panel-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; cursor: pointer; transition: border-color 0.2s; }
+  .sort-select:focus, .sort-select:hover { border-color: var(--accent2); }
+
+  .export-row { display: flex; gap: 12px; flex-wrap: wrap; }
 
   .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
   .panel-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
@@ -253,6 +335,22 @@
   .banner-share-btn:hover { border-color: var(--muted); color: var(--text); }
   .banner-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; transition: color 0.15s; flex-shrink: 0; }
   .banner-dismiss:hover { color: var(--text); }
+
+  /* FAQ */
+  .faq { margin-top: 72px; animation: fadeUp 0.6s 0.4s ease both; }
+  .faq h2 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 20px; }
+  .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .faq-item summary { cursor: pointer; padding: 16px 20px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: color 0.15s; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after { content: '+'; color: var(--accent); font-size: 20px; font-weight: 400; flex-shrink: 0; transition: transform 0.2s; }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item summary:hover { color: var(--accent2); }
+  .faq-answer { padding: 0 20px 18px; font-size: 12px; color: var(--muted); line-height: 1.75; }
+  .faq-answer a { color: var(--accent2); }
+
+  footer { margin-top: 56px; padding-top: 28px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted); line-height: 1.7; }
+  footer a { color: var(--accent2); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   ::-webkit-scrollbar { width: 6px; }
@@ -349,15 +447,23 @@
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="ghosts">👻 Not Following You Back</button>
-      <button class="tab-btn" data-tab="reverse">👀 You Don't Follow Back</button>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true">👻 Not Following You Back <span class="tab-count" id="countGhosts"></span></button>
+      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false">👀 You Don't Follow Back <span class="tab-count" id="countReverse"></span></button>
     </div>
 
     <div class="tab-panel active" id="panel-ghosts">
       <div class="panel-header">
         <div class="panel-title">People you follow who don't follow back</div>
-        <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." />
+        <div class="panel-controls">
+          <select class="sort-select" id="sortGhosts" aria-label="Sort accounts">
+            <option value="recent">Recently followed</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Username A–Z</option>
+            <option value="za">Username Z–A</option>
+          </select>
+          <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." aria-label="Search accounts not following you back" />
+        </div>
       </div>
       <div class="verify-bar" id="verifyBar">
         <div class="verify-left">
@@ -376,18 +482,75 @@
         <button class="filter-btn" data-filter="dead" data-list="ghosts">Dead accounts</button>
       </div>
       <div class="user-list" id="listGhosts"></div>
-      <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
+      <div class="export-row">
+        <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
+        <button class="export-btn" id="copyGhosts">⧉ Copy usernames</button>
+      </div>
     </div>
 
     <div class="tab-panel" id="panel-reverse">
       <div class="panel-header">
         <div class="panel-title">People following you that you don't follow back</div>
-        <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." />
+        <div class="panel-controls">
+          <select class="sort-select" id="sortReverse" aria-label="Sort accounts">
+            <option value="recent">Recently followed</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Username A–Z</option>
+            <option value="za">Username Z–A</option>
+          </select>
+          <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." aria-label="Search accounts you don't follow back" />
+        </div>
       </div>
       <div class="user-list" id="listReverse"></div>
-      <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
+      <div class="export-row">
+        <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
+        <button class="export-btn" id="copyReverse">⧉ Copy usernames</button>
+      </div>
     </div>
   </div>
+
+  <section class="faq">
+    <h2>Frequently asked questions</h2>
+
+    <details class="faq-item">
+      <summary>Is this safe? Do you see my data?</summary>
+      <div class="faq-answer">Yes, it's safe. Follower Analyzer runs <strong>entirely in your browser</strong>. The follower and following files you drop in are read and compared locally on your device — they are never uploaded to any server, and we never see them. You can even disconnect from the internet after the page loads and the analysis still works.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Do I need my Instagram password or to log in?</summary>
+      <div class="faq-answer">No. There's no login and no need to connect your account. You simply download your own data export from Instagram and drop the files here. This is the safest way to analyze your followers — tools that ask for your password can get your account banned or stolen.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Will Instagram know I used this, or notify anyone?</summary>
+      <div class="faq-answer">No. Because nothing connects to Instagram on your behalf, there's nothing for Instagram to detect. The optional "check for dead accounts" feature looks up public profile pages, but that doesn't notify the account owners or appear anywhere on your profile.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>How do I get my Instagram data export?</summary>
+      <div class="faq-answer">Follow the step-by-step instructions at the top of this page. In short: open Instagram → Account Center → Your Information and Permissions → Export your information → select <em>Followers and Following</em>, set the date range to <em>All time</em>, and choose JSON or HTML. Instagram emails you a download link, usually within a few minutes.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>JSON or HTML — which format should I pick?</summary>
+      <div class="faq-answer">Both work perfectly with this tool, so pick whichever you prefer. JSON files tend to be a little smaller and include exact follow dates. If you already have one format downloaded, just use that.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>What does "Not following you back" mean?</summary>
+      <div class="faq-answer">These are accounts <strong>you follow</strong> that do <strong>not</strong> follow you back. "You don't follow back" is the opposite — accounts that follow <strong>you</strong> but that you don't follow. You can sort either list by follow date or username, search it, and export it as a CSV.</div>
+    </details>
+
+    <details class="faq-item">
+      <summary>Is it really free?</summary>
+      <div class="faq-answer">Yes, completely free with no account, ads, or limits. If it saved you time, you're welcome to <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener">buy me a coffee</a> — but there's no obligation.</div>
+    </details>
+  </section>
+
+  <footer>
+    <p>Follower Analyzer is a free, privacy-first tool to see who doesn't follow you back on Instagram. All analysis happens locally in your browser — your data never leaves your device. Not affiliated with or endorsed by Instagram or Meta.</p>
+  </footer>
 
 </div>
 
@@ -396,6 +559,16 @@
   let followingData = null;
   let ghostList = [];
   let reverseList = [];
+  const sortState = { ghosts: 'recent', reverse: 'recent' };
+
+  function sortUsers(list, mode) {
+    const arr = list.slice();
+    if (mode === 'az')      arr.sort((a, b) => a.username.localeCompare(b.username));
+    else if (mode === 'za') arr.sort((a, b) => b.username.localeCompare(a.username));
+    else if (mode === 'oldest') arr.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    else                    arr.sort((a, b) => (b.ts || 0) - (a.ts || 0)); // recent (default)
+    return arr;
+  }
 
   const followersFile = document.getElementById('followersFile');
   const followingFile = document.getElementById('followingFile');
@@ -432,7 +605,8 @@
         if (sib && sib.tagName === 'DIV') dateText = sib.textContent.trim();
       }
 
-      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+      const ts = dateText ? (Date.parse(dateText) || 0) : 0;
+      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText, ts });
     });
 
     return users;
@@ -469,11 +643,11 @@
       seen.add(username);
 
       let dateText = '';
-      if (entry?.timestamp) {
-        const d = new Date(entry.timestamp * 1000);
-        dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      const ts = entry?.timestamp ? entry.timestamp * 1000 : 0;
+      if (ts) {
+        dateText = new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
       }
-      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+      users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText, ts });
     };
 
     // Followers: top-level array
@@ -588,13 +762,18 @@
     document.getElementById('statFollowing').textContent  = followingData.length;
     document.getElementById('statFollowers').textContent  = followersData.length;
 
+    document.getElementById('countGhosts').textContent  = ghostList.length;
+    document.getElementById('countReverse').textContent = reverseList.length;
+
     document.getElementById('results').style.display = 'block';
-    renderList(ghostList,   'listGhosts',  false);
-    renderList(reverseList, 'listReverse', true);
+    renderGhostListWithStatus();
+    renderReverseList();
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Show the coffee banner after a short delay
-    setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
+    // Show the coffee banner after a short delay (unless previously dismissed)
+    if (localStorage.getItem('faBannerDismissed') !== '1') {
+      setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
+    }
   });
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -622,15 +801,22 @@
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
+      btn.setAttribute('aria-selected', 'true');
       document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
     });
   });
 
-  document.getElementById('searchReverse').addEventListener('input', function() {
-    renderList(reverseList.filter(u => u.username.includes(this.value.toLowerCase())), 'listReverse', true);
+  document.getElementById('searchReverse').addEventListener('input', renderReverseList);
+  document.getElementById('sortReverse').addEventListener('change', function() {
+    sortState.reverse = this.value;
+    renderReverseList();
+  });
+  document.getElementById('sortGhosts').addEventListener('change', function() {
+    sortState.ghosts = this.value;
+    renderGhostListWithStatus();
   });
 
   // ── CSV export ─────────────────────────────────────────────────────────────
@@ -647,9 +833,33 @@
   document.getElementById('exportGhosts').addEventListener('click',  () => exportCSV(ghostList,   'not_following_back.csv'));
   document.getElementById('exportReverse').addEventListener('click', () => exportCSV(reverseList, 'not_followed_back.csv'));
 
+  // ── Copy usernames ─────────────────────────────────────────────────────────
+
+  async function copyUsernames(list, btn) {
+    const text = list.map(u => '@' + u.username).join('\n');
+    const original = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = `✓ Copied ${list.length}`;
+    } catch {
+      // Fallback for browsers without clipboard API / insecure contexts
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); btn.textContent = `✓ Copied ${list.length}`; }
+      catch { btn.textContent = '✗ Copy failed'; }
+      document.body.removeChild(ta);
+    }
+    setTimeout(() => { btn.textContent = original; }, 1800);
+  }
+
+  document.getElementById('copyGhosts').addEventListener('click',  e => copyUsernames(ghostList,   e.currentTarget));
+  document.getElementById('copyReverse').addEventListener('click', e => copyUsernames(reverseList, e.currentTarget));
+
   // Banner interactions
   document.getElementById('bannerDismiss').addEventListener('click', () => {
     document.getElementById('coffeeBanner').classList.remove('visible');
+    try { localStorage.setItem('faBannerDismissed', '1'); } catch {}
   });
 
   document.getElementById('shareBtn').addEventListener('click', () => {
@@ -784,12 +994,20 @@
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  function renderReverseList() {
+    const searchQ = document.getElementById('searchReverse').value.toLowerCase();
+    const list = sortUsers(reverseList.filter(u => u.username.includes(searchQ)), sortState.reverse);
+    renderList(list, 'listReverse', true);
+  }
+
   function renderGhostListWithStatus() {
     const searchQ = document.getElementById('searchGhosts').value.toLowerCase();
     let list = ghostList.filter(u => u.username.includes(searchQ));
 
     if (currentGhostFilter === 'active') list = list.filter(u => deadStatus[u.username] === 'active');
     else if (currentGhostFilter === 'dead') list = list.filter(u => deadStatus[u.username] === 'dead');
+
+    list = sortUsers(list, sortState.ghosts);
 
     const el = document.getElementById('listGhosts');
     if (list.length === 0) {
@@ -829,14 +1047,7 @@
     renderGhostListWithStatus();
   });
 
-  // Patch the existing ghost search to use the status-aware renderer
-  document.getElementById('searchGhosts').addEventListener('input', function() {
-    if (Object.keys(deadStatus).length > 0) {
-      renderGhostListWithStatus();
-    } else {
-      renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', false);
-    }
-  });
+  document.getElementById('searchGhosts').addEventListener('input', renderGhostListWithStatus);
 </script>
 
 <!-- Floating coffee button -->
