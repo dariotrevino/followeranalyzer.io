@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Follower Analyzer — Instagram</title>
+<title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
+<meta name="description" content="Free Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs entirely in your browser — your export never leaves your device." />
+<link rel="canonical" href="https://followeranalyzer.io/" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://followeranalyzer.io/" />
+<meta property="og:title" content="Follower Analyzer — Instagram Not Following Back" />
+<meta property="og:description" content="Find who does not follow you back on Instagram. Drop your Instagram data export (ZIP, JSON, or HTML) — everything runs locally in your browser." />
+<meta property="og:site_name" content="Follower Analyzer" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Follower Analyzer — Instagram Not Following Back" />
+<meta name="twitter:description" content="Find who does not follow you back on Instagram. Free, private, runs entirely in your browser." />
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XJJ4FBPKLH"></script>
 <script>
@@ -15,6 +25,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="icon" type="image/png" href="favicon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -44,7 +55,7 @@
 
   .container { max-width: 860px; margin: 0 auto; padding: 60px 24px 100px; }
 
-  header { margin-bottom: 64px; animation: fadeUp 0.6s ease both; }
+  header { margin-bottom: 40px; animation: fadeUp 0.6s ease both; }
 
   .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
 
@@ -61,7 +72,7 @@
     margin-bottom: 20px;
   }
 
-  .subtitle { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 500px; }
+  .subtitle { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 540px; }
 
   /* Instructions */
   .instructions {
@@ -71,16 +82,6 @@
     padding: 28px;
     margin-bottom: 40px;
     animation: fadeUp 0.6s 0.1s ease both;
-  }
-
-  .instructions h2 {
-    font-family: 'Syne', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--accent2);
-    margin-bottom: 20px;
   }
 
   .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
@@ -139,18 +140,15 @@
   .tip strong { color: var(--accent2); }
 
   /* Drop grid */
-  .drop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 40px; animation: fadeUp 0.6s 0.2s ease both; }
-  @media (max-width: 560px) { .drop-grid { grid-template-columns: 1fr; } }
-
-  .drop-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 36px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s; position: relative; background: var(--surface); }
+  .drop-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 40px 28px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s; position: relative; background: var(--surface); margin-bottom: 16px; animation: fadeUp 0.6s 0.2s ease both; }
   .drop-zone:hover { border-color: var(--accent); background: #1a0f0f; transform: translateY(-2px); }
   .drop-zone.loaded { border-color: var(--green); border-style: solid; background: #0a1a12; }
   .drop-zone.drag-over { border-color: var(--accent2); background: #1a1200; transform: scale(1.02); }
   .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
-  .drop-icon { font-size: 32px; margin-bottom: 12px; display: block; }
-  .drop-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 6px; }
-  .drop-hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .drop-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+  .drop-label { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .drop-hint { font-size: 11px; color: var(--muted); line-height: 1.6; max-width: 420px; margin: 0 auto; }
   .drop-status { font-size: 11px; color: var(--green); margin-top: 8px; font-weight: 500; }
   .drop-status.error { color: var(--accent); }
 
@@ -162,20 +160,22 @@
   /* Results */
   #results { display: none; animation: fadeUp 0.5s ease both; }
 
-  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 36px; }
-  @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 36px; }
+  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
 
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; text-align: center; }
-  .stat-num { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 12px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
   .stat-num.red    { color: var(--accent); }
   .stat-num.orange { color: var(--accent2); }
   .stat-num.green  { color: var(--green); }
   .stat-num.blue   { color: var(--blue); }
+  .stat-num.purple { color: #c084fc; }
   .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
 
   /* Tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
-  .tab-btn { background: none; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .tab-btn { background: none; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
   .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
   .tab-btn:hover:not(.active) { color: var(--text); }
 
@@ -255,6 +255,35 @@
   .banner-dismiss:hover { color: var(--text); }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+  .privacy-blurb { margin-top: 16px; display: inline-flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: #0a1a12; border: 1px solid #1a3a28; border-radius: 8px; font-size: 11px; color: var(--green); line-height: 1.55; max-width: 540px; }
+  .privacy-blurb strong { color: var(--text); }
+  .restore-banner { display: none; margin-bottom: 24px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease both; }
+  .restore-banner.visible { display: flex; }
+  .restore-text { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .restore-text strong { color: var(--text); }
+  .restore-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .restore-btn { padding: 7px 14px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: 1px solid var(--green); background: transparent; color: var(--green); }
+  .restore-btn:hover { background: var(--green); color: #000; }
+  .restore-clear { padding: 7px 12px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); }
+  .restore-clear:hover { border-color: var(--muted); color: var(--text); }
+  .callout { margin-bottom: 16px; padding: 12px 16px; background: #1a1200; border: 1px solid #2e2000; border-radius: 8px; font-size: 12px; color: var(--accent2); line-height: 1.6; animation: fadeUp 0.6s 0.08s ease both; }
+  .guide-skip { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; animation: fadeUp 0.6s 0.1s ease both; }
+  .skip-link { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: 'DM Mono', monospace; text-decoration: underline; text-underline-offset: 3px; }
+  .skip-link:hover { color: var(--text); }
+  .instructions { padding: 0; overflow: hidden; }
+  .instructions summary { list-style: none; cursor: pointer; padding: 18px 28px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); display: flex; align-items: center; justify-content: space-between; gap: 12px; user-select: none; }
+  .instructions summary::-webkit-details-marker { display: none; }
+  .instructions summary::after { content: '+'; font-size: 18px; color: var(--muted); font-weight: 400; }
+  .instructions[open] summary::after { content: '\2212'; }
+  .instructions-body { padding: 0 28px 28px; }
+  .drop-zone.partial { border-color: var(--accent2); border-style: solid; background: #1a1200; }
+  .drop-status-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .drop-status.warn { color: var(--accent2); }
+  .user-card.mutual-hover:hover { border-color: #c084fc; background: #140a20; }
+  .user-avatar.purple { color: #c084fc; }
+  .verify-note { font-size: 10px; color: var(--accent2); line-height: 1.5; max-width: 460px; margin-top: 2px; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -266,11 +295,36 @@
   <header>
     <p class="eyebrow">Instagram · Follower Analyzer</p>
     <h1>Follower<br>Analyzer</h1>
-    <p class="subtitle">Find out who you follow that doesn't follow you back — and who follows you that you don't follow back. Everything runs locally in your browser, your data never leaves your device.</p>
+    <p class="subtitle">Find out who you follow that doesn't follow you back — and who follows you that you don't follow back. Drop your Instagram export ZIP or files below.</p>
+    <div class="privacy-blurb">
+      <span>🔒</span>
+      <span><strong>100% private.</strong> This tool runs entirely in your browser. Your export files are never uploaded to any server — nothing leaves your device.</span>
+    </div>
   </header>
 
-  <div class="instructions">
-    <h2>How to export your Instagram data</h2>
+  <div class="restore-banner" id="restoreBanner">
+    <div class="restore-text">
+      <strong>Restore last analysis?</strong>
+      <span id="restoreMeta"></span>
+    </div>
+    <div class="restore-actions">
+      <button class="restore-btn" id="restoreBtn">Restore</button>
+      <button class="restore-clear" id="clearSavedBtn">Dismiss &amp; clear</button>
+    </div>
+  </div>
+
+  <div class="callout" id="dateRangeCallout">
+    <strong>Important:</strong> When exporting from Instagram, set <strong>Date range → All time</strong>. Any other range will make your counts incomplete.
+  </div>
+
+  <div class="guide-skip">
+    <span style="font-size:11px;color:var(--muted);">Need the export walkthrough?</span>
+    <button type="button" class="skip-link" id="skipToUpload">I've exported before — skip to upload ↓</button>
+  </div>
+
+  <details class="instructions" id="exportGuide">
+    <summary>How to export your Instagram data</summary>
+    <div class="instructions-body">
 
     <div class="step"><span class="step-num">1</span><span class="step-body">Open Instagram and tap the <strong>hamburger menu</strong> (☰) in the top right</span></div>
     <div class="step"><span class="step-num">2</span><span class="step-body">Tap <strong>Account Center</strong></span></div>
@@ -289,29 +343,25 @@
       </span>
     </div>
     <div class="step"><span class="step-num">7</span><span class="step-body">Tap <strong>Start Export</strong> and wait for Instagram to process it (usually a few minutes, sometimes longer)</span></div>
-    <div class="step"><span class="step-num">8</span><span class="step-body"><strong>Download</strong> the ZIP when it's ready, unzip it, and drop the files below</span></div>
+    <div class="step"><span class="step-num">8</span><span class="step-body"><strong>Download</strong> the ZIP when it's ready — you can drop the ZIP here as-is, or unzip and drop the followers / following files</span></div>
 
     <div class="tip">
-      <strong>Which files to look for:</strong> Inside the ZIP, find the <code>connections/followers_and_following/</code> folder.
-      Drop <strong>followers_1</strong> (and any followers_2, followers_3… if they exist) into the left zone, and <strong>following</strong> into the right zone.
-      JSON exports end in <code>.json</code>, HTML exports end in <code>.html</code> — both work fine.
+      <strong>What we look for:</strong> Inside the ZIP, files under <code>connections/followers_and_following/</code>
+      (nested folder prefixes are fine). We load all <strong>followers_1</strong>, <strong>followers_2</strong>, … and <strong>following</strong>
+      in JSON or HTML. You can also drop those files directly — filenames are auto-routed.
     </div>
-  </div>
+    </div>
+  </details>
 
-  <div class="drop-grid">
-    <div class="drop-zone" id="followersZone">
-      <input type="file" id="followersFile" accept=".html,.htm,.json" multiple />
-      <span class="drop-icon">👥</span>
-      <div class="drop-label">Followers file(s)</div>
-      <div class="drop-hint">followers_1.html or followers_1.json<br>Select multiple if you have followers_2, etc.</div>
+  <div class="drop-zone" id="uploadZone">
+    <input type="file" id="uploadFile" accept=".html,.htm,.json,.zip" multiple />
+    <span class="drop-icon">📦</span>
+    <div class="drop-label">Drop ZIP or files here</div>
+    <div class="drop-hint">Instagram export .zip, or followers_*.json/html + following.json/html<br>Files are auto-sorted by name — wrong drop is fine</div>
+    <div class="drop-status-wrap">
       <div class="drop-status" id="followersStatus"></div>
-    </div>
-    <div class="drop-zone" id="followingZone">
-      <input type="file" id="followingFile" accept=".html,.htm,.json" />
-      <span class="drop-icon">➡️</span>
-      <div class="drop-label">Following file</div>
-      <div class="drop-hint">following.html or following.json</div>
       <div class="drop-status" id="followingStatus"></div>
+      <div class="drop-status" id="uploadStatus"></div>
     </div>
   </div>
 
@@ -340,6 +390,10 @@
         <div class="stat-label">You Don't Follow Back</div>
       </div>
       <div class="stat-card">
+        <div class="stat-num purple" id="statMutuals">0</div>
+        <div class="stat-label">Mutuals</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-num orange" id="statFollowing">0</div>
         <div class="stat-label">You Follow</div>
       </div>
@@ -352,6 +406,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="ghosts">👻 Not Following You Back</button>
       <button class="tab-btn" data-tab="reverse">👀 You Don't Follow Back</button>
+      <button class="tab-btn" data-tab="mutuals">🤝 Mutuals</button>
     </div>
 
     <div class="tab-panel active" id="panel-ghosts">
@@ -362,7 +417,8 @@
       <div class="verify-bar" id="verifyBar">
         <div class="verify-left">
           <div class="verify-title">🔍 Check for dead accounts</div>
-          <div class="verify-desc">Flags accounts that have been deleted or deactivated so you know which ones are actually gone. Checks run in the background — takes a minute for large lists.</div>
+          <div class="verify-desc">Flags accounts that appear deleted or deactivated. Checks run via a public proxy — results can be incomplete when Instagram or the proxy blocks requests.</div>
+          <div class="verify-note">Many “unknown” results usually mean the proxy was rate-limited — not a bug in your data.</div>
           <div class="verify-progress" id="verifyProgress">
             <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
             <div class="progress-text" id="progressText">Checking...</div>
@@ -374,6 +430,7 @@
         <button class="filter-btn active" data-filter="all" data-list="ghosts">All</button>
         <button class="filter-btn" data-filter="active" data-list="ghosts">Active accounts</button>
         <button class="filter-btn" data-filter="dead" data-list="ghosts">Dead accounts</button>
+        <button class="filter-btn" data-filter="unknown" data-list="ghosts">Unknown / unchecked</button>
       </div>
       <div class="user-list" id="listGhosts"></div>
       <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
@@ -387,6 +444,15 @@
       <div class="user-list" id="listReverse"></div>
       <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
     </div>
+
+    <div class="tab-panel" id="panel-mutuals">
+      <div class="panel-header">
+        <div class="panel-title">People you follow who also follow you back</div>
+        <input class="search-box" id="searchMutuals" type="text" placeholder="Search usernames..." />
+      </div>
+      <div class="user-list" id="listMutuals"></div>
+      <button class="export-btn" id="exportMutuals">⬇ Export as CSV</button>
+    </div>
   </div>
 
 </div>
@@ -396,14 +462,18 @@
   let followingData = null;
   let ghostList = [];
   let reverseList = [];
+  let mutualList = [];
 
-  const followersFile = document.getElementById('followersFile');
-  const followingFile = document.getElementById('followingFile');
-  const followersZone = document.getElementById('followersZone');
-  const followingZone = document.getElementById('followingZone');
+  const STORAGE_KEY = 'fa_last_analysis_v1';
+  const STORAGE_MAX_BYTES = 2.5 * 1024 * 1024;
+
+  const uploadFile = document.getElementById('uploadFile');
+  const uploadZone = document.getElementById('uploadZone');
   const followersStatus = document.getElementById('followersStatus');
   const followingStatus = document.getElementById('followingStatus');
+  const uploadStatus = document.getElementById('uploadStatus');
   const analyzeBtn = document.getElementById('analyzeBtn');
+
 
   // ── Parsers ────────────────────────────────────────────────────────────────
 
@@ -490,7 +560,8 @@
     return isJSON ? parseJSON(text) : parseHTML(text);
   }
 
-  // ── File reading ───────────────────────────────────────────────────────────
+
+  // ── File helpers ───────────────────────────────────────────────────────────
 
   function readFile(file) {
     return new Promise((res, rej) => {
@@ -501,124 +572,369 @@
     });
   }
 
-  function checkReady() {
+  function readFileAsArrayBuffer(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.onerror = () => rej(new Error('read error'));
+      r.readAsArrayBuffer(file);
+    });
+  }
+
+  function basename(path) {
+    const parts = path.replace(/\\/g, '/').split('/');
+    return parts[parts.length - 1] || path;
+  }
+
+  function classifyPath(path) {
+    const name = basename(path).toLowerCase();
+    if (!/\.(json|html?)$/i.test(name)) return null;
+    if (/^following(\.(json|html?))?$/.test(name) || name.startsWith('following.') || name === 'following') {
+      return 'following';
+    }
+    if (/^followers(_\d+)?(\.(json|html?))?$/.test(name) || name.startsWith('followers')) {
+      return 'followers';
+    }
+    return null;
+  }
+
+  function mergeUsers(existing, incoming) {
+    const seen = new Set((existing || []).map(u => u.username));
+    const out = existing ? existing.slice() : [];
+    for (const u of incoming) {
+      if (!seen.has(u.username)) { seen.add(u.username); out.push(u); }
+    }
+    return out;
+  }
+
+  function updateZoneUI() {
+    followersStatus.classList.remove('error', 'warn');
+    followingStatus.classList.remove('error', 'warn');
+    uploadStatus.classList.remove('error', 'warn');
+    followersStatus.textContent = followersData ? ('✓ ' + followersData.length + ' followers loaded') : '';
+    followingStatus.textContent = followingData ? ('✓ ' + followingData.length + ' following loaded') : '';
+    uploadZone.classList.remove('loaded', 'partial');
+    if (followersData && followingData) {
+      uploadZone.classList.add('loaded');
+      uploadStatus.textContent = 'Ready to analyze';
+    } else if (followersData || followingData) {
+      uploadZone.classList.add('partial');
+      uploadStatus.textContent = 'Still need ' + (!followersData ? 'followers' : 'following') + ' file(s)';
+      uploadStatus.classList.add('warn');
+    } else {
+      uploadStatus.textContent = '';
+    }
     analyzeBtn.disabled = !(followersData && followingData);
   }
 
-  async function handleFollowersFiles(files) {
-    followersStatus.classList.remove('error');
-    try {
-      const allUsers = [];
-      const seen = new Set();
-      for (const file of files) {
-        const users = parseFile(await readFile(file), file.name);
-        users.forEach(u => { if (!seen.has(u.username)) { seen.add(u.username); allUsers.push(u); } });
-      }
-      if (allUsers.length === 0) {
-        followersStatus.textContent = '✗ No users found — is this the right file?';
-        followersStatus.classList.add('error');
-        return;
-      }
-      followersData = allUsers;
-      const suffix = files.length > 1 ? ` across ${files.length} files` : '';
-      followersStatus.textContent = `✓ ${allUsers.length} followers loaded${suffix}`;
-      followersZone.classList.add('loaded');
-    } catch {
-      followersStatus.textContent = '✗ Error reading file';
+  function setFollowers(users) {
+    if (!users || users.length === 0) {
+      followersStatus.textContent = '✗ No followers found — is this the right file?';
       followersStatus.classList.add('error');
+      return false;
     }
-    checkReady();
+    followersData = users;
+    return true;
   }
 
-  async function handleFollowingFile(file) {
-    followingStatus.classList.remove('error');
-    try {
-      const users = parseFile(await readFile(file), file.name);
-      if (users.length === 0) {
-        followingStatus.textContent = '✗ No users found — is this the right file?';
-        followingStatus.classList.add('error');
-        return;
-      }
-      followingData = users;
-      followingStatus.textContent = `✓ ${users.length} following loaded`;
-      followingZone.classList.add('loaded');
-    } catch {
-      followingStatus.textContent = '✗ Error reading file';
+  function setFollowing(users) {
+    if (!users || users.length === 0) {
+      followingStatus.textContent = '✗ No following found — is this the right file?';
       followingStatus.classList.add('error');
+      return false;
     }
-    checkReady();
+    followingData = users;
+    return true;
   }
 
-  // ── Event listeners ────────────────────────────────────────────────────────
 
-  followersFile.addEventListener('change', () => {
-    if (followersFile.files.length) handleFollowersFiles(Array.from(followersFile.files));
+  async function handleZip(file) {
+    const ZipLib = window['JSZip'];
+    if (!ZipLib) {
+      uploadStatus.textContent = '✗ ZIP support failed to load. Try dropping unzipped JSON/HTML files.';
+      uploadStatus.classList.add('error');
+      return;
+    }
+    uploadStatus.classList.remove('error');
+    uploadStatus.textContent = 'Reading ZIP…';
+    try {
+      const buf = await readFileAsArrayBuffer(file);
+      const zip = await ZipLib.loadAsync(buf);
+      const followerEntries = [];
+      const followingEntries = [];
+
+      zip.forEach((relativePath, entry) => {
+        if (entry.dir) return;
+        const kind = classifyPath(relativePath);
+        if (kind === 'followers') followerEntries.push(entry);
+        else if (kind === 'following') followingEntries.push(entry);
+      });
+
+      const preferConn = entries => {
+        const preferred = entries.filter(e => /followers_and_following/i.test(e.name));
+        return preferred.length ? preferred : entries;
+      };
+
+      const folFiles = preferConn(followerEntries);
+      const fingFiles = preferConn(followingEntries);
+
+      let allFollowers = [];
+      for (const entry of folFiles) {
+        const text = await entry.async('string');
+        allFollowers = mergeUsers(allFollowers, parseFile(text, entry.name));
+      }
+      let allFollowing = [];
+      for (const entry of fingFiles) {
+        const text = await entry.async('string');
+        allFollowing = mergeUsers(allFollowing, parseFile(text, entry.name));
+      }
+
+      if (allFollowers.length) setFollowers(allFollowers);
+      if (allFollowing.length) setFollowing(allFollowing);
+
+      if (!allFollowers.length && !allFollowing.length) {
+        uploadStatus.textContent = '✗ No followers/following files found in ZIP';
+        uploadStatus.classList.add('error');
+      } else {
+        const bits = [];
+        if (folFiles.length) bits.push(folFiles.length + ' followers file(s)');
+        if (fingFiles.length) bits.push(fingFiles.length + ' following file(s)');
+        uploadStatus.textContent = '✓ ZIP imported (' + bits.join(', ') + ')';
+      }
+    } catch (err) {
+      uploadStatus.textContent = '✗ Could not read ZIP — try unzipping and dropping the files';
+      uploadStatus.classList.add('error');
+    }
+    updateZoneUI();
+  }
+
+  async function handleLooseFiles(files) {
+    uploadStatus.classList.remove('error');
+    const followerFiles = [];
+    const followingFiles = [];
+    const unknown = [];
+    const zips = [];
+
+    for (const f of files) {
+      if (/\.zip$/i.test(f.name)) { zips.push(f); continue; }
+      const kind = classifyPath(f.name);
+      if (kind === 'followers') followerFiles.push(f);
+      else if (kind === 'following') followingFiles.push(f);
+      else if (/\.(json|html?)$/i.test(f.name)) unknown.push(f);
+    }
+
+    for (const z of zips) await handleZip(z);
+
+    if (followerFiles.length) {
+      try {
+        let all = followersData || [];
+        for (const file of followerFiles) {
+          all = mergeUsers(all, parseFile(await readFile(file), file.name));
+        }
+        setFollowers(all);
+      } catch {
+        followersStatus.textContent = '✗ Error reading followers file';
+        followersStatus.classList.add('error');
+      }
+    }
+
+    if (followingFiles.length) {
+      try {
+        let all = followingData || [];
+        for (const file of followingFiles) {
+          all = mergeUsers(all, parseFile(await readFile(file), file.name));
+        }
+        setFollowing(all);
+      } catch {
+        followingStatus.textContent = '✗ Error reading following file';
+        followingStatus.classList.add('error');
+      }
+    }
+
+    for (const file of unknown) {
+      try {
+        const text = await readFile(file);
+        const users = parseFile(text, file.name);
+        if (!users.length) continue;
+        if (!followersData) setFollowers(users);
+        else if (!followingData) setFollowing(users);
+        else followersData = mergeUsers(followersData, users);
+        uploadStatus.textContent = 'Routed ' + file.name + ' by content (filename unclear)';
+        uploadStatus.classList.add('warn');
+      } catch {}
+    }
+    updateZoneUI();
+  }
+
+  async function handleIncomingFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    await handleLooseFiles(files);
+  }
+
+  uploadFile.addEventListener('change', () => {
+    if (uploadFile.files.length) handleIncomingFiles(uploadFile.files);
   });
-  followingFile.addEventListener('change', () => {
-    if (followingFile.files[0]) handleFollowingFile(followingFile.files[0]);
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    handleIncomingFiles(e.dataTransfer.files);
   });
 
-  followersZone.addEventListener('dragover', e => { e.preventDefault(); followersZone.classList.add('drag-over'); });
-  followersZone.addEventListener('dragleave', () => followersZone.classList.remove('drag-over'));
-  followersZone.addEventListener('drop', e => {
-    e.preventDefault(); followersZone.classList.remove('drag-over');
-    const files = Array.from(e.dataTransfer.files).filter(f => /\.(html?|json)$/i.test(f.name));
-    if (files.length) handleFollowersFiles(files);
+  document.getElementById('skipToUpload').addEventListener('click', () => {
+    document.getElementById('exportGuide').open = false;
+    uploadZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    uploadZone.classList.add('drag-over');
+    setTimeout(() => uploadZone.classList.remove('drag-over'), 800);
   });
 
-  followingZone.addEventListener('dragover', e => { e.preventDefault(); followingZone.classList.add('drag-over'); });
-  followingZone.addEventListener('dragleave', () => followingZone.classList.remove('drag-over'));
-  followingZone.addEventListener('drop', e => {
-    e.preventDefault(); followingZone.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFollowingFile(file);
-  });
 
-  // ── Analysis ───────────────────────────────────────────────────────────────
+  function runAnalysis(options) {
+    options = options || {};
+    if (!followersData || !followingData) return;
 
-  analyzeBtn.addEventListener('click', () => {
     const followerSet  = new Set(followersData.map(u => u.username));
     const followingSet = new Set(followingData.map(u => u.username));
 
     ghostList   = followingData.filter(u => !followerSet.has(u.username));
     reverseList = followersData.filter(u => !followingSet.has(u.username));
+    mutualList  = followingData.filter(u => followerSet.has(u.username));
 
     document.getElementById('statGhosts').textContent    = ghostList.length;
     document.getElementById('statReverse').textContent   = reverseList.length;
-    document.getElementById('statFollowing').textContent  = followingData.length;
-    document.getElementById('statFollowers').textContent  = followersData.length;
+    document.getElementById('statMutuals').textContent   = mutualList.length;
+    document.getElementById('statFollowing').textContent = followingData.length;
+    document.getElementById('statFollowers').textContent = followersData.length;
 
     document.getElementById('results').style.display = 'block';
-    renderList(ghostList,   'listGhosts',  false);
-    renderList(reverseList, 'listReverse', true);
+    renderList(ghostList,   'listGhosts',  'ghost');
+    renderList(reverseList, 'listReverse', 'reverse');
+    renderList(mutualList,  'listMutuals', 'mutual');
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    // Show the coffee banner after a short delay
-    setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
-  });
+    if (!options.fromRestore) {
+      saveLastAnalysis();
+      setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
+    }
+  }
 
-  // ── Rendering ──────────────────────────────────────────────────────────────
+  analyzeBtn.addEventListener('click', () => runAnalysis());
 
-  function renderList(list, listId, isReverse) {
+  function saveLastAnalysis() {
+    try {
+      const payload = {
+        savedAt: Date.now(),
+        counts: {
+          ghosts: ghostList.length,
+          reverse: reverseList.length,
+          mutuals: mutualList.length,
+          following: followingData.length,
+          followers: followersData.length
+        },
+        ghosts: ghostList,
+        reverse: reverseList,
+        mutuals: mutualList,
+        following: followingData,
+        followers: followersData
+      };
+      const raw = JSON.stringify(payload);
+      if (raw.length > STORAGE_MAX_BYTES) {
+        const slim = {
+          savedAt: payload.savedAt,
+          counts: payload.counts,
+          ghosts: ghostList,
+          reverse: reverseList,
+          mutuals: mutualList
+        };
+        const slimRaw = JSON.stringify(slim);
+        if (slimRaw.length > STORAGE_MAX_BYTES) return;
+        localStorage.setItem(STORAGE_KEY, slimRaw);
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, raw);
+    } catch {}
+  }
+
+  function loadSavedAnalysis() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
+  function clearSavedAnalysis() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    document.getElementById('restoreBanner').classList.remove('visible');
+  }
+
+  function offerRestore() {
+    const saved = loadSavedAnalysis();
+    if (!saved || !saved.ghosts || !saved.reverse) return;
+    const banner = document.getElementById('restoreBanner');
+    const when = saved.savedAt ? new Date(saved.savedAt) : null;
+    const whenStr = when ? when.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    const c = saved.counts || {};
+    document.getElementById('restoreMeta').textContent =
+      ' ' + (c.ghosts != null ? c.ghosts : saved.ghosts.length) + ' not following back · ' +
+      (c.mutuals != null ? c.mutuals : (saved.mutuals || []).length) + ' mutuals' +
+      (whenStr ? (' · saved ' + whenStr) : '');
+    banner.classList.add('visible');
+
+    document.getElementById('restoreBtn').onclick = () => {
+      ghostList = saved.ghosts || [];
+      reverseList = saved.reverse || [];
+      mutualList = saved.mutuals || [];
+      followingData = saved.following || null;
+      followersData = saved.followers || null;
+
+      document.getElementById('statGhosts').textContent    = (c.ghosts != null ? c.ghosts : ghostList.length);
+      document.getElementById('statReverse').textContent   = (c.reverse != null ? c.reverse : reverseList.length);
+      document.getElementById('statMutuals').textContent   = (c.mutuals != null ? c.mutuals : mutualList.length);
+      document.getElementById('statFollowing').textContent = (c.following != null ? c.following : (followingData ? followingData.length : '—'));
+      document.getElementById('statFollowers').textContent = (c.followers != null ? c.followers : (followersData ? followersData.length : '—'));
+
+      document.getElementById('results').style.display = 'block';
+      renderList(ghostList,   'listGhosts',  'ghost');
+      renderList(reverseList, 'listReverse', 'reverse');
+      renderList(mutualList,  'listMutuals', 'mutual');
+      banner.classList.remove('visible');
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (followersData && followingData) updateZoneUI();
+    };
+    document.getElementById('clearSavedBtn').onclick = clearSavedAnalysis;
+  }
+
+  offerRestore();
+
+
+  function renderList(list, listId, mode) {
     const el = document.getElementById(listId);
+    const isReverse = mode === 'reverse';
+    const isMutual = mode === 'mutual';
     if (list.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div class="big">${isReverse ? '🤝' : '🎉'}</div>${isReverse ? 'You follow everyone back!' : 'Everyone follows you back!'}<br>(or no matches found)</div>`;
+      const msg = isMutual ? 'No mutual follows found.' : isReverse ? 'You follow everyone back!' : 'Everyone follows you back!';
+      const emoji = isMutual ? '🤝' : isReverse ? '🤝' : '🎉';
+      el.innerHTML = '<div class="empty-state"><div class="big">' + emoji + '</div>' + msg + '<br>(or no matches found)</div>';
       return;
     }
+    const hover = isMutual ? ' mutual-hover' : isReverse ? ' blue-hover' : '';
+    const av = isMutual ? ' purple' : isReverse ? ' blue' : '';
+    const metaLabel = isMutual ? 'Mutual since' : isReverse ? 'Followed you' : 'You followed';
     el.innerHTML = list.map((u, i) => `
-      <div class="user-card${isReverse ? ' blue-hover' : ''}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
+      <div class="user-card${hover}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
         <div class="user-info">
-          <div class="user-avatar${isReverse ? ' blue' : ''}">${u.username[0].toUpperCase()}</div>
+          <div class="user-avatar${av}">${u.username[0].toUpperCase()}</div>
           <div>
             <div class="username">@${u.username}</div>
-            ${u.date ? `<div class="user-meta">${isReverse ? 'Followed you' : 'You followed'} ${u.date}</div>` : ''}
+            ${u.date ? `<div class="user-meta">${metaLabel} ${u.date}</div>` : ''}
           </div>
         </div>
         <a class="user-link" href="${u.href}" target="_blank" rel="noopener">View Profile ↗</a>
       </div>`).join('');
   }
-
-  // ── Tabs ───────────────────────────────────────────────────────────────────
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -630,10 +946,11 @@
   });
 
   document.getElementById('searchReverse').addEventListener('input', function() {
-    renderList(reverseList.filter(u => u.username.includes(this.value.toLowerCase())), 'listReverse', true);
+    renderList(reverseList.filter(u => u.username.includes(this.value.toLowerCase())), 'listReverse', 'reverse');
   });
-
-  // ── CSV export ─────────────────────────────────────────────────────────────
+  document.getElementById('searchMutuals').addEventListener('input', function() {
+    renderList(mutualList.filter(u => u.username.includes(this.value.toLowerCase())), 'listMutuals', 'mutual');
+  });
 
   function exportCSV(list, filename) {
     const csv = ['username,instagram_url,date', ...list.map(u => `${u.username},${u.href},"${u.date || ''}"`)].join('\n');
@@ -646,58 +963,24 @@
 
   document.getElementById('exportGhosts').addEventListener('click',  () => exportCSV(ghostList,   'not_following_back.csv'));
   document.getElementById('exportReverse').addEventListener('click', () => exportCSV(reverseList, 'not_followed_back.csv'));
+  document.getElementById('exportMutuals').addEventListener('click', () => exportCSV(mutualList,  'mutuals.csv'));
 
-  // Banner interactions
   document.getElementById('bannerDismiss').addEventListener('click', () => {
     document.getElementById('coffeeBanner').classList.remove('visible');
   });
 
   document.getElementById('shareBtn').addEventListener('click', () => {
-    const text = `I just found out who doesn't follow me back on Instagram using Follower Analyzer — runs entirely in your browser, no login needed.`;
+    const text = 'I just found out who doesn\'t follow me back on Instagram using Follower Analyzer — runs entirely in your browser, no login needed.';
     const url = window.location.href;
     if (navigator.share) {
       navigator.share({ title: 'Follower Analyzer', text, url }).catch(() => {});
     } else {
-      // Fallback: open a tweet
-      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text + ' ' + url)}`;
+      const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + ' ' + url);
       window.open(tweetUrl, '_blank', 'noopener');
     }
   });
 
-  // ── Dead account verification ──────────────────────────────────────────────
-  // Strategy: fetch each profile page with no-cors. Instagram returns a 404
-  // page for dead accounts that is ~5KB, vs a full profile page that is much
-  // larger. With mode:'no-cors' we get an opaque response and can't read the
-  // body or status — BUT we CAN measure the Content-Length hint via the
-  // response body size using a ReadableStream. However the most reliable
-  // cross-origin signal is actually timing: dead pages resolve very fast,
-  // active profiles are larger and slower. Instead, we use a known trick:
-  // fetch with redirect:'follow' and mode:'no-cors'. For deleted accounts,
-  // Instagram redirects to /accounts/login/ or serves a tiny 404. The opaque
-  // response for a redirect to login is distinguishable from a normal profile
-  // page by checking response.redirected — but that's also blocked in no-cors.
-  //
-  // Most reliable browser method that actually works:
-  // Load the profile as an Image src. Active accounts with public photos
-  // return a real OG image. But private/deactivated accounts return nothing.
-  // This doesn't distinguish private vs deleted.
-  //
-  // ACTUAL working method: use a <script> tag with onerror/onload — same origin
-  // issues apply.
-  //
-  // The approach that consistently works without CORS or an API key:
-  // fetch("https://www.instagram.com/<user>/", { mode: 'no-cors' })
-  // Both dead and live pages return an opaque response (type === 'opaque').
-  // But dead accounts redirect to /404/ first — we can detect this by
-  // opening them in a hidden iframe and listening to the final URL via
-  // postMessage from a same-origin trick... which also won't work cross-origin.
-  //
-  // FINAL ANSWER: The only reliable no-API method is to proxy through
-  // a server. In a pure client-side app, the best we can do is attempt
-  // the fetch and use response.ok on a same-origin request, which means
-  // we need a CORS proxy. We'll use allorigins.win as a lightweight public proxy.
-
-  const deadStatus = {}; // username -> 'checking' | 'active' | 'dead'
+  const deadStatus = {};
   let verifyRunning = false;
   let currentGhostFilter = 'all';
 
@@ -718,10 +1001,8 @@
 
     const total = ghostList.length;
     let done = 0;
-
-    // Process in batches of 5 to avoid hammering
     const BATCH = 3;
-    const DELAY = 600; // ms between batches
+    const DELAY = 600;
 
     for (let i = 0; i < total; i += BATCH) {
       const batch = ghostList.slice(i, i + BATCH);
@@ -729,21 +1010,24 @@
       done = Math.min(i + BATCH, total);
       const pct = Math.round((done / total) * 100);
       fill.style.width = pct + '%';
-      text.textContent = `Checked ${done} of ${total} accounts...`;
+      text.textContent = 'Checked ' + done + ' of ' + total + ' accounts...';
       renderGhostListWithStatus();
       if (i + BATCH < total) await sleep(DELAY);
     }
 
     fill.style.width = '100%';
     const deadCount    = Object.values(deadStatus).filter(s => s === 'dead').length;
+    const activeCount  = Object.values(deadStatus).filter(s => s === 'active').length;
     const unknownCount = Object.values(deadStatus).filter(s => s === 'unknown').length;
-    const unknownNote  = unknownCount > 0 ? `, ${unknownCount} couldn't be checked` : '';
-    text.textContent = `Done. ${deadCount} dead account${deadCount !== 1 ? 's' : ''} found${unknownNote}.`;
+    let summary = 'Done. ' + deadCount + ' dead · ' + activeCount + ' active';
+    if (unknownCount > 0) {
+      summary += ' · ' + unknownCount + ' unknown (Instagram/proxy likely blocked some checks — results can be incomplete)';
+    }
+    text.textContent = summary;
     btn.textContent = 'Re-check';
     btn.disabled = false;
     verifyRunning = false;
 
-    // Show filter buttons now that we have status data
     document.getElementById('filterRowGhosts').style.display = 'flex';
     renderGhostListWithStatus();
   }
@@ -751,32 +1035,27 @@
   async function checkAccount(username) {
     deadStatus[username] = 'checking';
     try {
-      // Instagram's public search endpoint returns profile data for active accounts
-      // and an empty results array for deleted/deactivated ones.
-      // We route through allorigins to avoid CORS.
-      const target = `https://www.instagram.com/web/search/topsearch/?query=${encodeURIComponent(username)}&context=blended&count=1`;
-      const proxy  = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
+      const target = 'https://www.instagram.com/web/search/topsearch/?query=' + encodeURIComponent(username) + '&context=blended&count=1';
+      const proxy  = 'https://api.allorigins.win/get?url=' + encodeURIComponent(target);
 
       const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
       if (!res.ok) { deadStatus[username] = 'unknown'; return; }
 
       const wrapper = await res.json();
-      const httpCode = wrapper?.status?.http_code;
+      const httpCode = wrapper && wrapper.status && wrapper.status.http_code;
       if (httpCode !== 200) { deadStatus[username] = 'unknown'; return; }
 
-      const body = wrapper?.contents || '';
+      const body = wrapper.contents || '';
       let data;
       try { data = JSON.parse(body); } catch { deadStatus[username] = 'unknown'; return; }
 
-      // Search results include users[] array — check if our exact username appears
-      const users = data?.users || [];
+      const users = data.users || [];
       const found = users.some(u => {
-        const u2 = u?.user || u;
-        return (u2?.username || '').toLowerCase() === username.toLowerCase();
+        const u2 = u.user || u;
+        return ((u2 && u2.username) || '').toLowerCase() === username.toLowerCase();
       });
 
       deadStatus[username] = found ? 'active' : 'dead';
-
     } catch {
       deadStatus[username] = 'unknown';
     }
@@ -790,10 +1069,11 @@
 
     if (currentGhostFilter === 'active') list = list.filter(u => deadStatus[u.username] === 'active');
     else if (currentGhostFilter === 'dead') list = list.filter(u => deadStatus[u.username] === 'dead');
+    else if (currentGhostFilter === 'unknown') list = list.filter(u => !deadStatus[u.username] || deadStatus[u.username] === 'unknown' || deadStatus[u.username] === 'checking');
 
     const el = document.getElementById('listGhosts');
     if (list.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div class="big">🎉</div>No accounts match this filter.</div>`;
+      el.innerHTML = '<div class="empty-state"><div class="big">🎉</div>No accounts match this filter.</div>';
       return;
     }
 
@@ -801,9 +1081,12 @@
       const status = deadStatus[u.username];
       const isDead = status === 'dead';
       const isChecking = status === 'checking';
+      const isUnknown = status === 'unknown';
       const badgeHTML = isDead
-        ? `<span class="dead-badge">deleted / deactivated</span>`
-        : isChecking ? `<span class="dead-badge" style="border-color:var(--muted);color:var(--muted);">checking...</span>` : '';
+        ? '<span class="dead-badge">deleted / deactivated</span>'
+        : isChecking ? '<span class="dead-badge" style="border-color:var(--muted);color:var(--muted);">checking...</span>'
+        : isUnknown ? '<span class="dead-badge" style="border-color:var(--accent2);color:var(--accent2);">unknown</span>'
+        : '';
 
       return `
         <div class="user-card${isDead ? ' dead' : ''}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
@@ -819,7 +1102,6 @@
     }).join('');
   }
 
-  // Filter buttons
   document.addEventListener('click', e => {
     const btn = e.target.closest('.filter-btn');
     if (!btn || btn.dataset.list !== 'ghosts') return;
@@ -829,12 +1111,11 @@
     renderGhostListWithStatus();
   });
 
-  // Patch the existing ghost search to use the status-aware renderer
   document.getElementById('searchGhosts').addEventListener('input', function() {
     if (Object.keys(deadStatus).length > 0) {
       renderGhostListWithStatus();
     } else {
-      renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', false);
+      renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', 'ghost');
     }
   });
 </script>
