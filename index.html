@@ -287,6 +287,16 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  /* FAQ */
+  .faq { margin-top: 72px; }
+  .faq h2 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 20px; }
+  .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+  .faq-item summary { cursor: pointer; padding: 16px 20px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-item summary::after { content: '+'; color: var(--accent); font-size: 20px; font-weight: 400; flex-shrink: 0; transition: transform 0.2s; }
+  .faq-item[open] summary::after { transform: rotate(45deg); }
+  .faq-item summary:hover { color: var(--accent2); }
+  .faq-answer { padding: 0 20px 18px; font-size: 12px; color: var(--muted); line-height: 1.75; }
 </style>
 </head>
 <body>
@@ -455,7 +465,92 @@
     </div>
   </div>
 
+  <section class="faq" id="faq">
+    <h2>Frequently asked questions</h2>
+    <details class="faq-item">
+      <summary>How do I see who doesn't follow me back on Instagram?</summary>
+      <div class="faq-answer">Export your followers and following data from Instagram (Account Center, then Your Information and Permissions, then Export your information) with the date range set to <strong>All time</strong>. Drop the ZIP, or the followers and following files, onto this page. You'll get three lists: people who don't follow you back, people you don't follow back, and mutuals.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Does Instagram notify anyone when I check?</summary>
+      <div class="faq-answer">No. You're only downloading a copy of your own data. Follower Analyzer never logs in to your account and never contacts the people on your lists.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Is it safe? Do I need to give my password?</summary>
+      <div class="faq-answer">You never enter your Instagram password here. Your files are processed entirely in your browser and are never uploaded to a server. The optional dead-account check is the one exception: it looks up usernames through a public proxy, and only runs when you press Check accounts.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Why don't my numbers match the Instagram app?</summary>
+      <div class="faq-answer">Usually the export's date range wasn't set to All time, so older follows are missing. Deactivated or deleted accounts can also appear in your export but not in the app. Use the dead-account check to spot them.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Should I export as JSON or HTML?</summary>
+      <div class="faq-answer">Either works. Follower Analyzer reads both formats, and files are sorted automatically by name.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Is Follower Analyzer free?</summary>
+      <div class="faq-answer">Yes. There's no account, no app to install and no payment.</div>
+    </details>
+  </section>
+
 </div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I see who doesn't follow me back on Instagram?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Export your followers and following data from Instagram with the date range set to All time, then drop the ZIP or the files onto Follower Analyzer. You get lists of who doesn't follow you back, who you don't follow back, and mutuals."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Instagram notify anyone when I check?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. You only download a copy of your own data. Follower Analyzer never logs in to your account or contacts anyone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it safe? Do I need to give my password?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You never enter your Instagram password. Files are processed in your browser and never uploaded. The optional dead-account check looks up usernames through a public proxy, and only runs when you start it."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why don't my numbers match the Instagram app?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The export's date range usually wasn't set to All time. Deactivated or deleted accounts can also appear in the export but not in the app."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Should I export as JSON or HTML?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Either works. Follower Analyzer reads both."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Follower Analyzer free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. No account, no app and no payment."
+      }
+    }
+  ]
+}
+</script>
 
 <script>
   let followersData = null;
