@@ -15,6 +15,63 @@ const uploadStatus = document.getElementById('uploadStatus');
 const analyzeBtn = document.getElementById('analyzeBtn');
 
 
+// ── Untrusted input ────────────────────────────────────────────────────────
+//
+// Everything in an export file (and anything read back from localStorage) is
+// treated as untrusted. Usernames must look like real Instagram usernames
+// before they are kept, and all text is escaped before it goes into the page.
+
+// Instagram usernames: letters, digits, periods and underscores, up to 30 chars.
+const USERNAME_RE = /^[a-z0-9._]{1,30}$/;
+
+// instagram.com path segments that are pages, not profiles.
+const NOT_PROFILES = new Set(['_u', 'p', 'reel', 'reels', 'explore', 'accounts', 'stories', 'direct', 'tv']);
+
+// Returns a clean lowercase username, or null if the value is not one.
+function cleanUsername(raw) {
+  if (typeof raw !== 'string') return null;
+  const name = raw.trim().toLowerCase();
+  return USERNAME_RE.test(name) && !NOT_PROFILES.has(name) ? name : null;
+}
+
+// Pulls the username out of a profile link (handles the /_u/ form too).
+function usernameFromHref(href) {
+  if (typeof href !== 'string') return null;
+  const m = href.match(/instagram\.com\/_u\/([^/?#\s]+)/) || href.match(/instagram\.com\/([^/?#\s]+)/);
+  return m ? cleanUsername(m[1]) : null;
+}
+
+// The only shape a user record is allowed to have. The profile link is always
+// rebuilt from the validated username, never copied from the file.
+function makeUser(username, date) {
+  return {
+    username,
+    href: 'https://www.instagram.com/' + username,
+    date: typeof date === 'string' ? date.trim().slice(0, 40) : ''
+  };
+}
+
+// Re-validates a list that came from somewhere we do not control.
+function sanitizeUsers(list) {
+  const out = [];
+  const seen = new Set();
+  if (!Array.isArray(list)) return out;
+  for (const u of list) {
+    const name = cleanUsername(u && u.username);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push(makeUser(name, u.date));
+  }
+  return out;
+}
+
+function esc(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+
 // ── Parsers ────────────────────────────────────────────────────────────────
 
 // HTML export: followers use /instagram.com/username, following uses /instagram.com/_u/username
@@ -24,14 +81,8 @@ function parseHTML(htmlText) {
   const seen = new Set();
 
   doc.querySelectorAll('a[href*="instagram.com/"]').forEach(link => {
-    const href = link.getAttribute('href') || '';
-    // Match /_u/username (following) or /username (followers)
-    let m = href.match(/instagram\.com\/_u\/([^/?#\s]+)/);
-    if (!m) m = href.match(/instagram\.com\/([^/?#\s]+)/);
-    if (!m) return;
-
-    const username = m[1].toLowerCase();
-    if (!username || username === '_u' || seen.has(username)) return;
+    const username = usernameFromHref(link.getAttribute('href'));
+    if (!username || seen.has(username)) return;
     seen.add(username);
 
     // Date is in the next sibling div
@@ -39,10 +90,10 @@ function parseHTML(htmlText) {
     const parent = link.closest('div');
     if (parent) {
       const sib = parent.nextElementSibling;
-      if (sib && sib.tagName === 'DIV') dateText = sib.textContent.trim();
+      if (sib && sib.tagName === 'DIV') dateText = sib.textContent;
     }
 
-    users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+    users.push(makeUser(username, dateText));
   });
 
   return users;
@@ -62,35 +113,30 @@ function parseJSON(jsonText) {
   try { data = JSON.parse(jsonText); } catch { return users; }
 
   const processItem = item => {
-    // Try value field first (followers), then title (following), then extract from href
     const list = item?.string_list_data;
     const entry = Array.isArray(list) ? list[0] : null;
 
-    let username = (item?.title || entry?.value || '').toLowerCase().trim();
+    // First field that holds a valid username wins: title (following),
+    // then value (followers), then the profile link as a last resort.
+    const username = cleanUsername(item?.title) || cleanUsername(entry?.value) || usernameFromHref(entry?.href);
 
-    // Last resort: extract from href like https://www.instagram.com/_u/username
-    if (!username && entry?.href) {
-      const m = entry.href.match(/instagram\.com\/_u\/([^/?#\s]+)/) ||
-                entry.href.match(/instagram\.com\/([^/?#\s]+)/);
-      if (m) username = m[1].toLowerCase();
-    }
-
-    if (!username || username === '_u' || seen.has(username)) return;
+    if (!username || seen.has(username)) return;
     seen.add(username);
 
     let dateText = '';
-    if (entry?.timestamp) {
-      const d = new Date(entry.timestamp * 1000);
-      dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const stamp = Number(entry?.timestamp);
+    if (Number.isFinite(stamp) && stamp > 0) {
+      const d = new Date(stamp * 1000);
+      if (!isNaN(d)) dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     }
-    users.push({ username, href: `https://www.instagram.com/${username}`, date: dateText });
+    users.push(makeUser(username, dateText));
   };
 
   // Followers: top-level array
   if (Array.isArray(data)) data.forEach(processItem);
 
   // Following: object with relationships_following key
-  if (data?.relationships_following) data.relationships_following.forEach(processItem);
+  if (Array.isArray(data?.relationships_following)) data.relationships_following.forEach(processItem);
 
   return users;
 }
@@ -412,7 +458,7 @@ function clearSavedAnalysis() {
 
 function offerRestore() {
   const saved = loadSavedAnalysis();
-  if (!saved || !saved.ghosts || !saved.reverse) return;
+  if (!saved || !Array.isArray(saved.ghosts) || !Array.isArray(saved.reverse)) return;
   const banner = document.getElementById('restoreBanner');
   const when = saved.savedAt ? new Date(saved.savedAt) : null;
   const whenStr = when ? when.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
@@ -424,17 +470,20 @@ function offerRestore() {
   banner.classList.add('visible');
 
   document.getElementById('restoreBtn').onclick = () => {
-    ghostList = saved.ghosts || [];
-    reverseList = saved.reverse || [];
-    mutualList = saved.mutuals || [];
-    followingData = saved.following || null;
-    followersData = saved.followers || null;
+    // Saved data is re-validated exactly like a freshly dropped file.
+    ghostList = sanitizeUsers(saved.ghosts);
+    reverseList = sanitizeUsers(saved.reverse);
+    mutualList = sanitizeUsers(saved.mutuals);
+    followingData = Array.isArray(saved.following) ? sanitizeUsers(saved.following) : null;
+    followersData = Array.isArray(saved.followers) ? sanitizeUsers(saved.followers) : null;
 
-    document.getElementById('statGhosts').textContent    = (c.ghosts != null ? c.ghosts : ghostList.length);
-    document.getElementById('statReverse').textContent   = (c.reverse != null ? c.reverse : reverseList.length);
-    document.getElementById('statMutuals').textContent   = (c.mutuals != null ? c.mutuals : mutualList.length);
-    document.getElementById('statFollowing').textContent = (c.following != null ? c.following : (followingData ? followingData.length : '—'));
-    document.getElementById('statFollowers').textContent = (c.followers != null ? c.followers : (followersData ? followersData.length : '—'));
+    // Large analyses are saved without the full lists, so fall back to the saved totals.
+    const savedCount = v => (Number.isFinite(Number(v)) && v != null ? Number(v) : '—');
+    document.getElementById('statGhosts').textContent    = ghostList.length;
+    document.getElementById('statReverse').textContent   = reverseList.length;
+    document.getElementById('statMutuals').textContent   = mutualList.length;
+    document.getElementById('statFollowing').textContent = followingData ? followingData.length : savedCount(c.following);
+    document.getElementById('statFollowers').textContent = followersData ? followersData.length : savedCount(c.followers);
 
     document.getElementById('results').style.display = 'block';
     renderList(ghostList,   'listGhosts',  'ghost');
@@ -460,20 +509,28 @@ function renderList(list, listId, mode) {
     el.innerHTML = '<div class="empty-state"><div class="big">' + emoji + '</div>' + msg + '<br>(or no matches found)</div>';
     return;
   }
-  const hover = isMutual ? ' mutual-hover' : isReverse ? ' blue-hover' : '';
-  const av = isMutual ? ' purple' : isReverse ? ' blue' : '';
+  const cardClass = isMutual ? ' mutual-hover' : isReverse ? ' blue-hover' : '';
+  const avatarClass = isMutual ? ' purple' : isReverse ? ' blue' : '';
   const metaLabel = isMutual ? 'Mutual since' : isReverse ? 'Followed you' : 'You followed';
-  el.innerHTML = list.map((u, i) => `
-    <div class="user-card${hover}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
+  el.innerHTML = list.map((u, i) => userCardHTML(u, i, { cardClass, avatarClass, metaLabel })).join('');
+}
+
+// The one card template, used by every list. Everything that came from an
+// export file is escaped here, so no caller can put raw file text in the page.
+// badgeHTML is the exception: it must be markup built by this script only.
+function userCardHTML(u, i, opts) {
+  const o = opts || {};
+  return `
+    <div class="user-card${o.cardClass || ''}" style="animation-delay:${Math.min(i * 0.02, 0.5)}s">
       <div class="user-info">
-        <div class="user-avatar${av}">${u.username[0].toUpperCase()}</div>
+        <div class="user-avatar${o.avatarClass || ''}">${esc(u.username.charAt(0).toUpperCase())}</div>
         <div>
-          <div class="username">@${u.username}</div>
-          ${u.date ? `<div class="user-meta">${metaLabel} ${u.date}</div>` : ''}
+          <div class="username">@${esc(u.username)}${o.badgeHTML || ''}</div>
+          ${u.date ? `<div class="user-meta">${esc(o.metaLabel)} ${esc(u.date)}</div>` : ''}
         </div>
       </div>
-      <a class="user-link" href="${u.href}" target="_blank" rel="noopener">View Profile ↗</a>
-    </div>`).join('');
+      <a class="user-link" href="${esc(u.href)}" target="_blank" rel="noopener">View Profile ↗</a>
+    </div>`;
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -492,8 +549,16 @@ document.getElementById('searchMutuals').addEventListener('input', function() {
   renderList(mutualList.filter(u => u.username.includes(this.value.toLowerCase())), 'listMutuals', 'mutual');
 });
 
+// Usernames and links are validated, so only the free-text date needs care:
+// quote it, and stop a spreadsheet from running it as a formula.
+function csvText(value) {
+  let s = String(value == null ? '' : value);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
 function exportCSV(list, filename) {
-  const csv = ['username,instagram_url,date', ...list.map(u => `${u.username},${u.href},"${u.date || ''}"`)].join('\n');
+  const csv = ['username,instagram_url,date', ...list.map(u => `${u.username},${u.href},${csvText(u.date)}`)].join('\n');
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
     download: filename
@@ -628,17 +693,7 @@ function renderGhostListWithStatus() {
       : isUnknown ? '<span class="dead-badge" style="border-color:var(--accent2);color:var(--accent2);">unknown</span>'
       : '';
 
-    return `
-      <div class="user-card${isDead ? ' dead' : ''}" style="animation-delay:${Math.min(i*0.02,0.5)}s">
-        <div class="user-info">
-          <div class="user-avatar">${u.username[0].toUpperCase()}</div>
-          <div>
-            <div class="username">@${u.username}${badgeHTML}</div>
-            ${u.date ? `<div class="user-meta">You followed ${u.date}</div>` : ''}
-          </div>
-        </div>
-        <a class="user-link" href="${u.href}" target="_blank" rel="noopener">View Profile ↗</a>
-      </div>`;
+    return userCardHTML(u, i, { cardClass: isDead ? ' dead' : '', metaLabel: 'You followed', badgeHTML });
   }).join('');
 }
 

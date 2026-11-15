@@ -3,6 +3,18 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!--
+  Content Security Policy. The browser enforces this list, so it is the
+  technical backing for the privacy claims on this page:
+  - script-src: only this site's own files and Google's tag script can run.
+    Inline script is blocked, which is what stops a crafted export file from
+    running code. Keep all JavaScript in .js files, never in this HTML.
+  - connect-src: the only places this page can send data are Google Analytics
+    and the allorigins proxy used by the optional account lookup.
+  If you add a new third-party script, font or API, add it here or it will be
+  blocked (the browser console shows what was refused).
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
 <meta name="description" content="Free Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs entirely in your browser — your export never leaves your device." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
