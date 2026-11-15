@@ -19,9 +19,14 @@
 <script src="analytics.js"></script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 <link rel="icon" type="image/png" href="favicon.svg" />
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
+<!-- JSZip 3.10.1, served from this site instead of a CDN -->
+<script defer src="lib/jszip.min.js"></script>
 <style>
+  /* Fonts are served from this site (see fonts/ for licenses), not Google Fonts */
+  @font-face { font-family: 'Syne'; font-style: normal; font-weight: 400 800; font-display: swap; src: url('fonts/syne-latin-wght-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('fonts/dm-mono-latin-400-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'DM Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('fonts/dm-mono-latin-500-normal.woff2') format('woff2'); }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
