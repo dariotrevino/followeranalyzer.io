@@ -16,7 +16,7 @@
 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
-<meta name="description" content="Free Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs entirely in your browser — your export never leaves your device." />
+<meta name="description" content="Free Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://followeranalyzer.io/" />
@@ -185,6 +185,11 @@
   .stat-num.purple { color: #c084fc; }
   .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
 
+  /* Opt-in "remember this analysis" */
+  .remember-row { display: flex; align-items: flex-start; gap: 10px; margin: -12px 0 32px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; cursor: pointer; }
+  .remember-row strong { color: var(--text); font-weight: 500; }
+  .remember-row input { flex-shrink: 0; width: 15px; height: 15px; margin-top: 2px; accent-color: var(--green); cursor: pointer; }
+
   /* Tabs */
   .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
   .tab-btn { background: none; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
@@ -270,6 +275,7 @@
 
   .privacy-blurb { margin-top: 16px; display: inline-flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: #0a1a12; border: 1px solid #1a3a28; border-radius: 8px; font-size: 11px; color: var(--green); line-height: 1.55; max-width: 540px; }
   .privacy-blurb strong { color: var(--text); }
+  .privacy-blurb a { color: var(--text); text-underline-offset: 3px; }
   .restore-banner { display: none; margin-bottom: 24px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease both; }
   .restore-banner.visible { display: flex; }
   .restore-text { font-size: 12px; color: var(--muted); line-height: 1.5; }
@@ -320,7 +326,7 @@
     <p class="subtitle">Find out who you follow that doesn't follow you back — and who follows you that you don't follow back. Drop your Instagram export ZIP or files below.</p>
     <div class="privacy-blurb">
       <span>🔒</span>
-      <span><strong>100% private.</strong> This tool runs entirely in your browser. Your export files are never uploaded to any server — nothing leaves your device.</span>
+      <span><strong>Your export stays on your device.</strong> It is read and compared here in your browser. The files are never uploaded, and nothing is saved unless you ask. <a href="#faq-privacy">What does leave the page?</a></span>
     </div>
   </header>
 
@@ -425,6 +431,11 @@
       </div>
     </div>
 
+    <label class="remember-row">
+      <input type="checkbox" id="rememberToggle" />
+      <span><strong>Remember this analysis on this device.</strong> <span id="rememberHint">Off by default. It is saved only in this browser, so leave it off on a shared computer.</span></span>
+    </label>
+
     <div class="tabs">
       <button class="tab-btn active" data-tab="ghosts">👻 Not Following You Back</button>
       <button class="tab-btn" data-tab="reverse">👀 You Don't Follow Back</button>
@@ -489,7 +500,11 @@
     </details>
     <details class="faq-item">
       <summary>Is it safe? Do I need to give my password?</summary>
-      <div class="faq-answer">You never enter your Instagram password here. Your files are processed entirely in your browser and are never uploaded to a server. The optional dead-account check is the one exception: it looks up usernames through a public proxy, and only runs when you press Check accounts.</div>
+      <div class="faq-answer">You never enter your Instagram password here. Your files are read and compared in your browser and are never uploaded to a server.</div>
+    </details>
+    <details class="faq-item" id="faq-privacy">
+      <summary>What information leaves my browser?</summary>
+      <div class="faq-answer">Your export files, and the lists built from them, are never uploaded. Two things do use the network. First, the page loads Google Analytics to count visits. It sees the usual visit details (browser, device, rough location) and nothing from your export. Second, if you press <strong>Check accounts</strong>, the usernames on your Not Following You Back list are sent to a public proxy (allorigins.win) so they can be looked up on Instagram. That only happens when you press the button. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
     </details>
     <details class="faq-item">
       <summary>Why don't my numbers match the Instagram app?</summary>
@@ -533,7 +548,15 @@
       "name": "Is it safe? Do I need to give my password?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "You never enter your Instagram password. Files are processed in your browser and never uploaded. The optional dead-account check looks up usernames through a public proxy, and only runs when you start it."
+        "text": "You never enter your Instagram password. Your files are read and compared in your browser and are never uploaded to a server."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What information leaves my browser?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Your export files, and the lists built from them, are never uploaded. The page loads Google Analytics to count visits, which sees the usual visit details and nothing from your export. If you press Check accounts, the usernames on your Not Following You Back list are sent to a public proxy so they can be looked up on Instagram. Nothing is saved in your browser unless you tick Remember this analysis."
       }
     },
     {

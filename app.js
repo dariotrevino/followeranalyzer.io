@@ -4,8 +4,15 @@ let ghostList = [];
 let reverseList = [];
 let mutualList = [];
 
+// Saving is opt-in. Nothing is written to localStorage unless the visitor
+// ticks "Remember this analysis", and unticking deletes the saved copy.
 const STORAGE_KEY = 'fa_last_analysis_v1';
+const REMEMBER_KEY = 'fa_remember_v1';
 const STORAGE_MAX_BYTES = 2.5 * 1024 * 1024;
+
+// Follower / following totals for the analysis on screen. Kept separately
+// because a large saved analysis does not include the two full lists.
+let totals = { following: null, followers: null };
 
 const uploadFile = document.getElementById('uploadFile');
 const uploadZone = document.getElementById('uploadZone');
@@ -13,6 +20,11 @@ const followersStatus = document.getElementById('followersStatus');
 const followingStatus = document.getElementById('followingStatus');
 const uploadStatus = document.getElementById('uploadStatus');
 const analyzeBtn = document.getElementById('analyzeBtn');
+const rememberToggle = document.getElementById('rememberToggle');
+const rememberHint = document.getElementById('rememberHint');
+const REMEMBER_HINT_OFF = rememberHint.textContent;
+const REMEMBER_HINT_ON = 'Saved in this browser only. Untick to delete the saved copy.';
+const REMEMBER_HINT_FAILED = 'This browser would not save it (storage is full or blocked).';
 
 
 // ── Untrusted input ────────────────────────────────────────────────────────
@@ -393,6 +405,7 @@ function runAnalysis(options) {
   document.getElementById('statMutuals').textContent   = mutualList.length;
   document.getElementById('statFollowing').textContent = followingData.length;
   document.getElementById('statFollowers').textContent = followersData.length;
+  totals = { following: followingData.length, followers: followersData.length };
 
   document.getElementById('results').style.display = 'block';
   renderList(ghostList,   'listGhosts',  'ghost');
@@ -401,47 +414,76 @@ function runAnalysis(options) {
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   if (!options.fromRestore) {
-    saveLastAnalysis();
+    syncSavedAnalysis();
     setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
   }
 }
 
 analyzeBtn.addEventListener('click', () => runAnalysis());
 
+// Writes the analysis on screen to localStorage. Returns true if it was saved.
+// Only call this through syncSavedAnalysis(), which checks the opt-in first.
 function saveLastAnalysis() {
   try {
-    const payload = {
+    const slim = {
       savedAt: Date.now(),
       counts: {
         ghosts: ghostList.length,
         reverse: reverseList.length,
         mutuals: mutualList.length,
-        following: followingData.length,
-        followers: followersData.length
+        following: totals.following,
+        followers: totals.followers
       },
       ghosts: ghostList,
       reverse: reverseList,
-      mutuals: mutualList,
-      following: followingData,
-      followers: followersData
+      mutuals: mutualList
     };
-    const raw = JSON.stringify(payload);
-    if (raw.length > STORAGE_MAX_BYTES) {
-      const slim = {
-        savedAt: payload.savedAt,
-        counts: payload.counts,
-        ghosts: ghostList,
-        reverse: reverseList,
-        mutuals: mutualList
-      };
-      const slimRaw = JSON.stringify(slim);
-      if (slimRaw.length > STORAGE_MAX_BYTES) return;
-      localStorage.setItem(STORAGE_KEY, slimRaw);
-      return;
-    }
+    const full = (followingData && followersData)
+      ? Object.assign({}, slim, { following: followingData, followers: followersData })
+      : slim;
+
+    // Very large accounts: drop the two full lists and keep the three results.
+    let raw = JSON.stringify(full);
+    if (raw.length > STORAGE_MAX_BYTES) raw = JSON.stringify(slim);
+    if (raw.length > STORAGE_MAX_BYTES) return false;
+
     localStorage.setItem(STORAGE_KEY, raw);
-  } catch {}
+    return true;
+  } catch { return false; }
 }
+
+function rememberEnabled() {
+  try { return localStorage.getItem(REMEMBER_KEY) === '1'; } catch { return false; }
+}
+
+function setRemember(on) {
+  try {
+    if (on) localStorage.setItem(REMEMBER_KEY, '1');
+    else localStorage.removeItem(REMEMBER_KEY);
+  } catch {}
+  rememberToggle.checked = on;
+  rememberHint.textContent = on ? REMEMBER_HINT_ON : REMEMBER_HINT_OFF;
+}
+
+function forgetSavedAnalysis() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+}
+
+// Makes storage match the checkbox: save the analysis on screen if the
+// visitor opted in, otherwise make sure nothing is stored.
+function syncSavedAnalysis() {
+  if (!rememberToggle.checked) { forgetSavedAnalysis(); return; }
+  if (!saveLastAnalysis()) {
+    setRemember(false);
+    forgetSavedAnalysis();
+    rememberHint.textContent = REMEMBER_HINT_FAILED;
+  }
+}
+
+rememberToggle.addEventListener('change', () => {
+  setRemember(rememberToggle.checked);
+  syncSavedAnalysis();
+});
 
 function loadSavedAnalysis() {
   try {
@@ -451,8 +493,11 @@ function loadSavedAnalysis() {
   } catch { return null; }
 }
 
+// "Dismiss & clear": delete the saved copy and turn remembering back off, so
+// the next analysis in this browser is not saved without a fresh opt-in.
 function clearSavedAnalysis() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  forgetSavedAnalysis();
+  setRemember(false);
   document.getElementById('restoreBanner').classList.remove('visible');
 }
 
@@ -484,6 +529,8 @@ function offerRestore() {
     document.getElementById('statMutuals').textContent   = mutualList.length;
     document.getElementById('statFollowing').textContent = followingData ? followingData.length : savedCount(c.following);
     document.getElementById('statFollowers').textContent = followersData ? followersData.length : savedCount(c.followers);
+    const total = (data, saved) => (data ? data.length : (typeof savedCount(saved) === 'number' ? savedCount(saved) : null));
+    totals = { following: total(followingData, c.following), followers: total(followersData, c.followers) };
 
     document.getElementById('results').style.display = 'block';
     renderList(ghostList,   'listGhosts',  'ghost');
@@ -496,7 +543,22 @@ function offerRestore() {
   document.getElementById('clearSavedBtn').onclick = clearSavedAnalysis;
 }
 
-offerRestore();
+// Nothing is kept without the opt-in. That includes analyses saved by older
+// versions of this page, which saved automatically: those are removed here.
+if (rememberEnabled()) {
+  setRemember(true);
+  offerRestore();
+} else {
+  forgetSavedAnalysis();
+}
+
+// The privacy note links to an FAQ answer; open it when it is the link target.
+function openLinkedAnswer() {
+  const target = location.hash ? document.getElementById(location.hash.slice(1)) : null;
+  if (target && target.tagName === 'DETAILS') target.open = true;
+}
+window.addEventListener('hashchange', openLinkedAnswer);
+openLinkedAnswer();
 
 
 function renderList(list, listId, mode) {
