@@ -534,15 +534,18 @@ function offerRestore() {
     followingData = Array.isArray(saved.following) ? sanitizeUsers(saved.following) : null;
     followersData = Array.isArray(saved.followers) ? sanitizeUsers(saved.followers) : null;
 
-    // Large analyses are saved without the full lists, so fall back to the saved totals.
-    const savedCount = v => (Number.isFinite(Number(v)) && v != null ? Number(v) : '—');
+    // Large analyses are saved without the two full lists, so the follower and
+    // following totals fall back to the saved numbers (or a dash if unusable).
+    const savedCount = v => (v != null && Number.isFinite(Number(v)) ? Number(v) : null);
+    totals = {
+      following: followingData ? followingData.length : savedCount(c.following),
+      followers: followersData ? followersData.length : savedCount(c.followers)
+    };
     document.getElementById('statGhosts').textContent    = ghostList.length;
     document.getElementById('statReverse').textContent   = reverseList.length;
     document.getElementById('statMutuals').textContent   = mutualList.length;
-    document.getElementById('statFollowing').textContent = followingData ? followingData.length : savedCount(c.following);
-    document.getElementById('statFollowers').textContent = followersData ? followersData.length : savedCount(c.followers);
-    const total = (data, saved) => (data ? data.length : (typeof savedCount(saved) === 'number' ? savedCount(saved) : null));
-    totals = { following: total(followingData, c.following), followers: total(followersData, c.followers) };
+    document.getElementById('statFollowing').textContent = totals.following != null ? totals.following : '—';
+    document.getElementById('statFollowers').textContent = totals.followers != null ? totals.followers : '—';
 
     resetLookup();
 
