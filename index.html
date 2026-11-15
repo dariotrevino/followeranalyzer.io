@@ -241,9 +241,10 @@
   .progress-fill { height: 100%; background: var(--accent2); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
   .progress-text { font-size: 10px; color: var(--muted); }
 
-  /* Dead badge */
-  .dead-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #2a1010; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
-  .user-card.dead { opacity: 0.45; }
+  /* Account lookup badges */
+  .status-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #2a1010; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
+  .status-badge.muted { border-color: var(--muted); color: var(--muted); }
+  .status-badge.warn { border-color: var(--accent2); color: var(--accent2); }
 
   /* Filter buttons */
   .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -449,9 +450,10 @@
       </div>
       <div class="verify-bar" id="verifyBar">
         <div class="verify-left">
-          <div class="verify-title">🔍 Check for dead accounts</div>
-          <div class="verify-desc">Flags accounts that appear deleted or deactivated. Checks run via a public proxy — results can be incomplete when Instagram or the proxy blocks requests.</div>
-          <div class="verify-note">Many “unknown” results usually mean the proxy was rate-limited — not a bug in your data.</div>
+          <div class="verify-title">🔍 Look up accounts on Instagram</div>
+          <div class="verify-desc">Searches Instagram for each username on this list. “Not found” can mean the account is deleted or deactivated, but it can also be private or hidden from search, so open the profile to confirm.</div>
+          <div class="verify-desc">This sends these usernames to a public proxy (allorigins.win). It is the only feature that sends anything from your lists off your device, and it only runs when you press the button.</div>
+          <div class="verify-note">Many “unknown” results mean Instagram or the proxy blocked the lookups, not that your data is wrong. Try again later. Only the unknown ones are checked again.</div>
           <div class="verify-progress" id="verifyProgress">
             <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
             <div class="progress-text" id="progressText">Checking...</div>
@@ -461,8 +463,8 @@
       </div>
       <div class="filter-row" id="filterRowGhosts" style="display:none">
         <button class="filter-btn active" data-filter="all" data-list="ghosts">All</button>
-        <button class="filter-btn" data-filter="active" data-list="ghosts">Active accounts</button>
-        <button class="filter-btn" data-filter="dead" data-list="ghosts">Dead accounts</button>
+        <button class="filter-btn" data-filter="found" data-list="ghosts">Found</button>
+        <button class="filter-btn" data-filter="notfound" data-list="ghosts">Not found in search</button>
         <button class="filter-btn" data-filter="unknown" data-list="ghosts">Unknown / unchecked</button>
       </div>
       <div class="user-list" id="listGhosts"></div>
@@ -508,7 +510,7 @@
     </details>
     <details class="faq-item">
       <summary>Why don't my numbers match the Instagram app?</summary>
-      <div class="faq-answer">Usually the export's date range wasn't set to All time, so older follows are missing. Deactivated or deleted accounts can also appear in your export but not in the app. Use the dead-account check to spot them.</div>
+      <div class="faq-answer">Usually the export's date range wasn't set to All time, so older follows are missing. Deactivated or deleted accounts can also appear in your export but not in the app. The account lookup on the Not Following You Back tab can help you spot them.</div>
     </details>
     <details class="faq-item">
       <summary>Should I export as JSON or HTML?</summary>

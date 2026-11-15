@@ -407,6 +407,7 @@ function runAnalysis(options) {
   document.getElementById('statFollowers').textContent = followersData.length;
   totals = { following: followingData.length, followers: followersData.length };
 
+  resetLookup();
   document.getElementById('results').style.display = 'block';
   renderList(ghostList,   'listGhosts',  'ghost');
   renderList(reverseList, 'listReverse', 'reverse');
@@ -532,6 +533,8 @@ function offerRestore() {
     const total = (data, saved) => (data ? data.length : (typeof savedCount(saved) === 'number' ? savedCount(saved) : null));
     totals = { following: total(followingData, c.following), followers: total(followersData, c.followers) };
 
+    resetLookup();
+
     document.getElementById('results').style.display = 'block';
     renderList(ghostList,   'listGhosts',  'ghost');
     renderList(reverseList, 'listReverse', 'reverse');
@@ -647,15 +650,46 @@ document.getElementById('shareBtn').addEventListener('click', () => {
   }
 });
 
-const deadStatus = {};
+// ── Account lookup ─────────────────────────────────────────────────────────
+//
+// Looks each "not following back" username up in Instagram search, through a
+// public proxy. A miss is only a hint: search also hides private, restricted
+// and low-ranked accounts, so the UI says "not found in search", never
+// "deleted". This is the only code that sends list data off the device.
+//
+// Status per username: 'checking' | 'found' | 'notfound' | 'unknown'
+const lookupStatus = {};
 let verifyRunning = false;
+let lookupRun = 0;            // bumped on reset so an in-flight run stops
 let currentGhostFilter = 'all';
+
+const hasAnswer = username => lookupStatus[username] === 'found' || lookupStatus[username] === 'notfound';
 
 document.getElementById('verifyBtn').addEventListener('click', startVerification);
 
+// Clears every lookup result. Called whenever the list on screen is replaced.
+function resetLookup() {
+  lookupRun++;
+  verifyRunning = false;
+  for (const name of Object.keys(lookupStatus)) delete lookupStatus[name];
+  currentGhostFilter = 'all';
+
+  const btn = document.getElementById('verifyBtn');
+  btn.disabled = false;
+  btn.textContent = 'Check accounts';
+  document.getElementById('verifyProgress').style.display = 'none';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressText').textContent = 'Checking...';
+  document.getElementById('filterRowGhosts').style.display = 'none';
+  document.querySelectorAll('.filter-btn[data-list="ghosts"]').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === 'all');
+  });
+}
+
 async function startVerification() {
-  if (verifyRunning) return;
+  if (verifyRunning || !ghostList.length) return;
   verifyRunning = true;
+  const run = lookupRun;
 
   const btn = document.getElementById('verifyBtn');
   const progress = document.getElementById('verifyProgress');
@@ -665,33 +699,38 @@ async function startVerification() {
   btn.disabled = true;
   btn.textContent = 'Checking...';
   progress.style.display = 'block';
+  fill.style.width = '0%';
 
-  const total = ghostList.length;
-  let done = 0;
+  // Only look up accounts that have no answer yet, so a retry does not resend
+  // usernames that were already resolved. If all have one, check them all again.
+  let targets = ghostList.filter(u => !hasAnswer(u.username));
+  if (!targets.length) targets = ghostList.slice();
+
+  const total = targets.length;
   const BATCH = 3;
   const DELAY = 600;
 
   for (let i = 0; i < total; i += BATCH) {
-    const batch = ghostList.slice(i, i + BATCH);
-    await Promise.all(batch.map(u => checkAccount(u.username)));
-    done = Math.min(i + BATCH, total);
-    const pct = Math.round((done / total) * 100);
-    fill.style.width = pct + '%';
+    const batch = targets.slice(i, i + BATCH);
+    await Promise.all(batch.map(u => checkAccount(u.username, run)));
+    if (run !== lookupRun) return;   // list was replaced or cleared mid-run
+    const done = Math.min(i + BATCH, total);
+    fill.style.width = Math.round((done / total) * 100) + '%';
     text.textContent = 'Checked ' + done + ' of ' + total + ' accounts...';
     renderGhostListWithStatus();
     if (i + BATCH < total) await sleep(DELAY);
+    if (run !== lookupRun) return;
   }
 
   fill.style.width = '100%';
-  const deadCount    = Object.values(deadStatus).filter(s => s === 'dead').length;
-  const activeCount  = Object.values(deadStatus).filter(s => s === 'active').length;
-  const unknownCount = Object.values(deadStatus).filter(s => s === 'unknown').length;
-  let summary = 'Done. ' + deadCount + ' dead · ' + activeCount + ' active';
+  const count = status => ghostList.filter(u => lookupStatus[u.username] === status).length;
+  const unknownCount = count('unknown');
+  let summary = 'Done. ' + count('notfound') + ' not found in search · ' + count('found') + ' found';
   if (unknownCount > 0) {
-    summary += ' · ' + unknownCount + ' unknown (Instagram/proxy likely blocked some checks — results can be incomplete)';
+    summary += ' · ' + unknownCount + ' unknown (Instagram or the proxy blocked those lookups)';
   }
   text.textContent = summary;
-  btn.textContent = 'Re-check';
+  btn.textContent = unknownCount > 0 ? 'Retry unknowns' : 'Check again';
   btn.disabled = false;
   verifyRunning = false;
 
@@ -699,44 +738,53 @@ async function startVerification() {
   renderGhostListWithStatus();
 }
 
-async function checkAccount(username) {
-  deadStatus[username] = 'checking';
+async function checkAccount(username, run) {
+  const set = status => { if (run === lookupRun) lookupStatus[username] = status; };
+  set('checking');
   try {
     const target = 'https://www.instagram.com/web/search/topsearch/?query=' + encodeURIComponent(username) + '&context=blended&count=1';
     const proxy  = 'https://api.allorigins.win/get?url=' + encodeURIComponent(target);
 
     const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) { deadStatus[username] = 'unknown'; return; }
+    if (!res.ok) { set('unknown'); return; }
 
     const wrapper = await res.json();
     const httpCode = wrapper && wrapper.status && wrapper.status.http_code;
-    if (httpCode !== 200) { deadStatus[username] = 'unknown'; return; }
+    if (httpCode !== 200) { set('unknown'); return; }
 
     const body = wrapper.contents || '';
     let data;
-    try { data = JSON.parse(body); } catch { deadStatus[username] = 'unknown'; return; }
+    try { data = JSON.parse(body); } catch { set('unknown'); return; }
 
-    const users = data.users || [];
-    const found = users.some(u => {
-      const u2 = u.user || u;
-      return ((u2 && u2.username) || '').toLowerCase() === username.toLowerCase();
+    // A response that is not a search result (login page, error) tells us nothing.
+    if (!data || !Array.isArray(data.users)) { set('unknown'); return; }
+
+    const found = data.users.some(u => {
+      const u2 = (u && u.user) || u;
+      return String((u2 && u2.username) || '').toLowerCase() === username;
     });
 
-    deadStatus[username] = found ? 'active' : 'dead';
+    set(found ? 'found' : 'notfound');
   } catch {
-    deadStatus[username] = 'unknown';
+    set('unknown');
   }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+const STATUS_BADGES = {
+  notfound: '<span class="status-badge">not found in search</span>',
+  checking: '<span class="status-badge muted">checking...</span>',
+  unknown:  '<span class="status-badge warn">unknown</span>'
+};
+
 function renderGhostListWithStatus() {
   const searchQ = document.getElementById('searchGhosts').value.toLowerCase();
   let list = ghostList.filter(u => u.username.includes(searchQ));
 
-  if (currentGhostFilter === 'active') list = list.filter(u => deadStatus[u.username] === 'active');
-  else if (currentGhostFilter === 'dead') list = list.filter(u => deadStatus[u.username] === 'dead');
-  else if (currentGhostFilter === 'unknown') list = list.filter(u => !deadStatus[u.username] || deadStatus[u.username] === 'unknown' || deadStatus[u.username] === 'checking');
+  if (currentGhostFilter === 'found') list = list.filter(u => lookupStatus[u.username] === 'found');
+  else if (currentGhostFilter === 'notfound') list = list.filter(u => lookupStatus[u.username] === 'notfound');
+  else if (currentGhostFilter === 'unknown') list = list.filter(u => !hasAnswer(u.username));
 
   const el = document.getElementById('listGhosts');
   if (list.length === 0) {
@@ -744,19 +792,10 @@ function renderGhostListWithStatus() {
     return;
   }
 
-  el.innerHTML = list.map((u, i) => {
-    const status = deadStatus[u.username];
-    const isDead = status === 'dead';
-    const isChecking = status === 'checking';
-    const isUnknown = status === 'unknown';
-    const badgeHTML = isDead
-      ? '<span class="dead-badge">deleted / deactivated</span>'
-      : isChecking ? '<span class="dead-badge" style="border-color:var(--muted);color:var(--muted);">checking...</span>'
-      : isUnknown ? '<span class="dead-badge" style="border-color:var(--accent2);color:var(--accent2);">unknown</span>'
-      : '';
-
-    return userCardHTML(u, i, { cardClass: isDead ? ' dead' : '', metaLabel: 'You followed', badgeHTML });
-  }).join('');
+  el.innerHTML = list.map((u, i) => userCardHTML(u, i, {
+    metaLabel: 'You followed',
+    badgeHTML: STATUS_BADGES[lookupStatus[u.username]] || ''
+  })).join('');
 }
 
 document.addEventListener('click', e => {
@@ -769,7 +808,7 @@ document.addEventListener('click', e => {
 });
 
 document.getElementById('searchGhosts').addEventListener('input', function() {
-  if (Object.keys(deadStatus).length > 0) {
+  if (Object.keys(lookupStatus).length > 0) {
     renderGhostListWithStatus();
   } else {
     renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', 'ghost');
