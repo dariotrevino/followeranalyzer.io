@@ -19,6 +19,9 @@ const uploadZone = document.getElementById('uploadZone');
 const followersStatus = document.getElementById('followersStatus');
 const followingStatus = document.getElementById('followingStatus');
 const uploadStatus = document.getElementById('uploadStatus');
+const uploadNote = document.getElementById('uploadNote');
+const resetBtn = document.getElementById('resetBtn');
+const resetRow = document.getElementById('resetRow');
 const analyzeBtn = document.getElementById('analyzeBtn');
 const rememberToggle = document.getElementById('rememberToggle');
 const rememberHint = document.getElementById('rememberHint');
@@ -184,16 +187,17 @@ function basename(path) {
   return parts[parts.length - 1] || path;
 }
 
+// Decides what an export file is from its name alone:
+//   followers_1.json, followers_2.html, "followers (1).json"  → 'followers'
+//   following.json, "following copy.html"                      → 'following'
+// Every other file in the export (blocked_profiles, pending_follow_requests,
+// following_hashtags, ...) returns null and is ignored. Files are never
+// guessed from their content: that is how unrelated lists used to get
+// counted as followers.
 function classifyPath(path) {
   const name = basename(path).toLowerCase();
-  if (!/\.(json|html?)$/i.test(name)) return null;
-  if (/^following(\.(json|html?))?$/.test(name) || name.startsWith('following.') || name === 'following') {
-    return 'following';
-  }
-  if (/^followers(_\d+)?(\.(json|html?))?$/.test(name) || name.startsWith('followers')) {
-    return 'followers';
-  }
-  return null;
+  const m = name.match(/^(followers|following)(?:[^a-z]|copy)*\.(json|html?)$/);
+  return m ? m[1] : null;
 }
 
 function mergeUsers(existing, incoming) {
@@ -205,12 +209,15 @@ function mergeUsers(existing, incoming) {
   return out;
 }
 
+// True once the loaded files have been analyzed (or an analysis was restored).
+// The next drop after that starts a new analysis instead of adding to this one.
+let analyzed = false;
+
+// Rewrites the three status lines and the buttons from the current state.
 function updateZoneUI() {
-  followersStatus.classList.remove('error', 'warn');
-  followingStatus.classList.remove('error', 'warn');
-  uploadStatus.classList.remove('error', 'warn');
   followersStatus.textContent = followersData ? ('✓ ' + followersData.length + ' followers loaded') : '';
   followingStatus.textContent = followingData ? ('✓ ' + followingData.length + ' following loaded') : '';
+  uploadStatus.classList.remove('error', 'warn');
   uploadZone.classList.remove('loaded', 'partial');
   if (followersData && followingData) {
     uploadZone.classList.add('loaded');
@@ -223,38 +230,36 @@ function updateZoneUI() {
     uploadStatus.textContent = '';
   }
   analyzeBtn.disabled = !(followersData && followingData);
+  resetRow.hidden = !(followersData || followingData || analyzed);
 }
 
-function setFollowers(users) {
-  if (!users || users.length === 0) {
-    followersStatus.textContent = '✗ No followers found — is this the right file?';
-    followersStatus.classList.add('error');
-    return false;
-  }
-  followersData = users;
-  return true;
+// Messages about the latest drop: errors, skipped files, what a ZIP held.
+// They live in their own element because updateZoneUI() rewrites the status
+// lines every time, which used to erase every error before anyone saw it.
+const dropNotes = [];
+
+function note(text, level) {
+  dropNotes.push({ text, level: level || 'warn' });
 }
 
-function setFollowing(users) {
-  if (!users || users.length === 0) {
-    followingStatus.textContent = '✗ No following found — is this the right file?';
-    followingStatus.classList.add('error');
-    return false;
-  }
-  followingData = users;
-  return true;
+function showDropNotes() {
+  uploadNote.replaceChildren(...dropNotes.map(n => {
+    const line = document.createElement('div');
+    line.className = 'drop-status' + (n.level === 'ok' ? '' : ' ' + n.level);
+    line.textContent = n.text;   // file names are untrusted: text only
+    return line;
+  }));
 }
 
+const shortName = name => (name.length > 48 ? name.slice(0, 45) + '…' : name);
 
+// A ZIP is a whole export, so the lists it holds replace what was loaded.
 async function handleZip(file) {
   const ZipLib = window['JSZip'];
   if (!ZipLib) {
-    uploadStatus.textContent = '✗ ZIP support failed to load. Try dropping unzipped JSON/HTML files.';
-    uploadStatus.classList.add('error');
+    note('✗ ZIP support did not load. Unzip the export and drop the followers and following files instead.', 'error');
     return;
   }
-  uploadStatus.classList.remove('error');
-  uploadStatus.textContent = 'Reading ZIP…';
   try {
     const buf = await readFileAsArrayBuffer(file);
     const zip = await ZipLib.loadAsync(buf);
@@ -287,88 +292,92 @@ async function handleZip(file) {
       allFollowing = mergeUsers(allFollowing, parseFile(text, entry.name));
     }
 
-    if (allFollowers.length) setFollowers(allFollowers);
-    if (allFollowing.length) setFollowing(allFollowing);
+    if (allFollowers.length) followersData = allFollowers;
+    if (allFollowing.length) followingData = allFollowing;
 
     if (!allFollowers.length && !allFollowing.length) {
-      uploadStatus.textContent = '✗ No followers/following files found in ZIP';
-      uploadStatus.classList.add('error');
+      note('✗ No followers or following lists found in ' + shortName(file.name) + '. Export “Followers and following” from Instagram, then drop that ZIP.', 'error');
     } else {
       const bits = [];
-      if (folFiles.length) bits.push(folFiles.length + ' followers file(s)');
-      if (fingFiles.length) bits.push(fingFiles.length + ' following file(s)');
-      uploadStatus.textContent = '✓ ZIP imported (' + bits.join(', ') + ')';
+      if (allFollowers.length) bits.push(folFiles.length + ' followers file(s)');
+      if (allFollowing.length) bits.push(fingFiles.length + ' following file(s)');
+      note('✓ Read ' + bits.join(' and ') + ' from ' + shortName(file.name), 'ok');
     }
   } catch (err) {
-    uploadStatus.textContent = '✗ Could not read ZIP — try unzipping and dropping the files';
-    uploadStatus.classList.add('error');
+    note('✗ Could not read ' + shortName(file.name) + '. Try unzipping it and dropping the files inside.', 'error');
   }
-  updateZoneUI();
 }
 
-async function handleLooseFiles(files) {
-  uploadStatus.classList.remove('error');
-  const followerFiles = [];
-  const followingFiles = [];
-  const unknown = [];
-  const zips = [];
+async function processDrop(files) {
+  // Files add up until you analyze them (so followers_1 and followers_2 can
+  // be dropped one at a time). After an analysis, a drop begins a new one.
+  if (analyzed) startOver();
+  dropNotes.length = 0;
+  const skipped = [];
 
-  for (const f of files) {
-    if (/\.zip$/i.test(f.name)) { zips.push(f); continue; }
-    const kind = classifyPath(f.name);
-    if (kind === 'followers') followerFiles.push(f);
-    else if (kind === 'following') followingFiles.push(f);
-    else if (/\.(json|html?)$/i.test(f.name)) unknown.push(f);
-  }
+  for (const file of files) {
+    if (/\.zip$/i.test(file.name)) { await handleZip(file); continue; }
 
-  for (const z of zips) await handleZip(z);
+    const kind = classifyPath(file.name);
+    if (!kind) { skipped.push(file.name); continue; }
 
-  if (followerFiles.length) {
     try {
-      let all = followersData || [];
-      for (const file of followerFiles) {
-        all = mergeUsers(all, parseFile(await readFile(file), file.name));
+      const users = parseFile(await readFile(file), file.name);
+      if (!users.length) {
+        note('✗ No accounts found in ' + shortName(file.name) + '. Is it the right file?', 'error');
+      } else if (kind === 'followers') {
+        followersData = mergeUsers(followersData, users);
+      } else {
+        followingData = mergeUsers(followingData, users);
       }
-      setFollowers(all);
     } catch {
-      followersStatus.textContent = '✗ Error reading followers file';
-      followersStatus.classList.add('error');
+      note('✗ Could not read ' + shortName(file.name) + '.', 'error');
     }
   }
 
-  if (followingFiles.length) {
-    try {
-      let all = followingData || [];
-      for (const file of followingFiles) {
-        all = mergeUsers(all, parseFile(await readFile(file), file.name));
-      }
-      setFollowing(all);
-    } catch {
-      followingStatus.textContent = '✗ Error reading following file';
-      followingStatus.classList.add('error');
-    }
+  if (skipped.length) {
+    const shown = skipped.slice(0, 3).map(shortName).join(', ');
+    const more = skipped.length > 3 ? ' and ' + (skipped.length - 3) + ' more' : '';
+    note('Ignored ' + skipped.length + ' file(s) that are not followers or following lists: ' + shown + more + '.', 'warn');
   }
 
-  for (const file of unknown) {
-    try {
-      const text = await readFile(file);
-      const users = parseFile(text, file.name);
-      if (!users.length) continue;
-      if (!followersData) setFollowers(users);
-      else if (!followingData) setFollowing(users);
-      else followersData = mergeUsers(followersData, users);
-      uploadStatus.textContent = 'Routed ' + file.name + ' by content (filename unclear)';
-      uploadStatus.classList.add('warn');
-    } catch {}
-  }
   updateZoneUI();
+  showDropNotes();
+  uploadFile.value = '';   // lets the same file be picked again after a reset
 }
 
-async function handleIncomingFiles(fileList) {
+// Drops are handled one at a time so two quick drops cannot interleave.
+let dropQueue = Promise.resolve();
+
+function handleIncomingFiles(fileList) {
   const files = Array.from(fileList || []);
-  if (!files.length) return;
-  await handleLooseFiles(files);
+  if (!files.length) return dropQueue;
+  dropQueue = dropQueue.then(() => processDrop(files)).catch(() => {});
+  return dropQueue;
 }
+
+// Clears everything on the page. The saved copy, if the visitor opted in to
+// one, is left alone: that is controlled by the "Remember" checkbox.
+function startOver() {
+  followersData = null;
+  followingData = null;
+  ghostList = [];
+  reverseList = [];
+  mutualList = [];
+  totals = { following: null, followers: null };
+  analyzed = false;
+
+  dropNotes.length = 0;
+  showDropNotes();
+  resetLookup();
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('coffeeBanner').classList.remove('visible');
+  ['searchGhosts', 'searchReverse', 'searchMutuals'].forEach(id => { document.getElementById(id).value = ''; });
+  uploadFile.value = '';
+  updateZoneUI();
+}
+
+resetBtn.addEventListener('click', startOver);
 
 uploadFile.addEventListener('change', () => {
   if (uploadFile.files.length) handleIncomingFiles(uploadFile.files);
@@ -406,6 +415,8 @@ function runAnalysis(options) {
   document.getElementById('statFollowing').textContent = followingData.length;
   document.getElementById('statFollowers').textContent = followersData.length;
   totals = { following: followingData.length, followers: followersData.length };
+  analyzed = true;
+  updateZoneUI();
 
   resetLookup();
   document.getElementById('results').style.display = 'block';
@@ -541,7 +552,8 @@ function offerRestore() {
     renderList(mutualList,  'listMutuals', 'mutual');
     banner.classList.remove('visible');
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    if (followersData && followingData) updateZoneUI();
+    analyzed = true;
+    updateZoneUI();
   };
   document.getElementById('clearSavedBtn').onclick = clearSavedAnalysis;
 }
@@ -576,7 +588,7 @@ function renderList(list, listId, mode) {
   }
   const cardClass = isMutual ? ' mutual-hover' : isReverse ? ' blue-hover' : '';
   const avatarClass = isMutual ? ' purple' : isReverse ? ' blue' : '';
-  const metaLabel = isMutual ? 'Mutual since' : isReverse ? 'Followed you' : 'You followed';
+  const metaLabel = isReverse ? 'Followed you' : 'You followed';
   el.innerHTML = list.map((u, i) => userCardHTML(u, i, { cardClass, avatarClass, metaLabel })).join('');
 }
 

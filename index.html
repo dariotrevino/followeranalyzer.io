@@ -163,6 +163,9 @@
   .drop-hint { font-size: 11px; color: var(--muted); line-height: 1.6; max-width: 420px; margin: 0 auto; }
   .drop-status { font-size: 11px; color: var(--green); margin-top: 8px; font-weight: 500; }
   .drop-status.error { color: var(--accent); }
+  #uploadNote { display: flex; flex-direction: column; gap: 4px; align-items: center; max-width: 520px; line-height: 1.5; }
+  #uploadNote:empty { display: none; }
+  .reset-row { text-align: right; margin: -4px 0 14px; }
 
   /* Analyze button */
   .analyze-btn { width: 100%; padding: 18px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; transition: opacity 0.2s, transform 0.15s; margin-bottom: 48px; animation: fadeUp 0.6s 0.3s ease both; }
@@ -386,12 +389,17 @@
     <input type="file" id="uploadFile" accept=".html,.htm,.json,.zip" multiple />
     <span class="drop-icon">📦</span>
     <div class="drop-label">Drop ZIP or files here</div>
-    <div class="drop-hint">Instagram export .zip, or followers_*.json/html + following.json/html<br>Files are auto-sorted by name — wrong drop is fine</div>
+    <div class="drop-hint">Instagram export .zip, or followers_*.json/html + following.json/html<br>Files are matched by name. Anything else in the export is ignored.</div>
     <div class="drop-status-wrap">
       <div class="drop-status" id="followersStatus"></div>
       <div class="drop-status" id="followingStatus"></div>
       <div class="drop-status" id="uploadStatus"></div>
+      <div id="uploadNote" aria-live="polite"></div>
     </div>
+  </div>
+
+  <div class="reset-row" id="resetRow" hidden>
+    <button type="button" class="skip-link" id="resetBtn">Clear files and start over</button>
   </div>
 
   <button class="analyze-btn" id="analyzeBtn" disabled>Analyze My Data</button>
