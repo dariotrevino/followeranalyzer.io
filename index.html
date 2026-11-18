@@ -23,14 +23,22 @@
 <meta property="og:title" content="Follower Analyzer — Instagram Not Following Back" />
 <meta property="og:description" content="Find who does not follow you back on Instagram. Drop your Instagram data export (ZIP, JSON, or HTML) — everything runs locally in your browser." />
 <meta property="og:site_name" content="Follower Analyzer" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="https://followeranalyzer.io/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Follower Analyzer: see who doesn't follow you back on Instagram" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://followeranalyzer.io/og-image.png" />
 <meta name="twitter:title" content="Follower Analyzer — Instagram Not Following Back" />
 <meta name="twitter:description" content="Find who does not follow you back on Instagram. Free, private, runs entirely in your browser." />
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XJJ4FBPKLH"></script>
 <script src="analytics.js"></script>
 <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-<link rel="icon" type="image/png" href="favicon.svg" />
+<meta name="theme-color" content="#0a0a0f" />
+<!-- Start the heading and body fonts downloading right away instead of after the CSS is parsed -->
+<link rel="preload" href="fonts/syne-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="fonts/dm-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
 <!-- JSZip 3.10.1, served from this site instead of a CDN -->
 <script defer src="lib/jszip.min.js"></script>
 <style>
@@ -531,6 +539,20 @@
   </section>
 
 </div>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "Follower Analyzer",
+  "url": "https://followeranalyzer.io/",
+  "description": "Free Instagram follower analyzer. Shows who you follow that doesn't follow you back, who follows you that you don't follow back, and mutuals, from your Instagram data export. Runs in your browser.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+}
+</script>
 
 <script type="application/ld+json">
 {
