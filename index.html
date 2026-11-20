@@ -16,7 +16,7 @@
 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
-<meta name="description" content="Free Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
+<meta name="description" content="Free, unlimited Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://followeranalyzer.io/" />
@@ -30,11 +30,17 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:image" content="https://followeranalyzer.io/og-image.png" />
 <meta name="twitter:title" content="Follower Analyzer — Instagram Not Following Back" />
-<meta name="twitter:description" content="Find who does not follow you back on Instagram. Free, private, runs entirely in your browser." />
+<meta name="twitter:description" content="Find who does not follow you back on Instagram. Free and unlimited, private, runs entirely in your browser." />
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-XJJ4FBPKLH"></script>
 <script src="analytics.js"></script>
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<!-- Icons. Bing, Edge and older browsers only use favicon.ico; modern browsers
+     prefer the SVG; Google's results want a square PNG at a multiple of 48px;
+     iPhones use apple-touch-icon when the site is saved to the home screen. -->
+<link rel="icon" href="/favicon.ico" sizes="48x48" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <meta name="theme-color" content="#0a0a0f" />
 <!-- Start the heading and body fonts downloading right away instead of after the CSS is parsed -->
 <link rel="preload" href="fonts/syne-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
@@ -372,6 +378,16 @@
   .faq-item[open] summary::after { transform: rotate(45deg); }
   .faq-item summary:hover { color: var(--accent2); }
   .faq-answer { padding: 0 20px 18px; font-size: 12px; color: var(--muted); line-height: 1.75; }
+  .support-line strong { color: var(--text); font-weight: 500; }
+
+  /* Guides: a short link list under the FAQ, kept light so the page stays a tool */
+  .guides { margin-top: 48px; }
+  .guides h2 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 14px; }
+  .guides ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .guides li { font-size: 13px; line-height: 1.6; }
+  .guides a { color: var(--text); text-underline-offset: 3px; text-decoration-color: var(--border); }
+  .guides a:hover { color: var(--accent2); }
+  .guides .guide-lang { margin-left: 8px; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; text-decoration: none; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -385,7 +401,7 @@
       <span>🔒</span>
       <span><strong>Your export stays on your device.</strong> It is read and compared here in your browser. The files are never uploaded, and nothing is saved unless you ask. <a href="#faq-privacy">What does leave the page?</a></span>
     </div>
-    <p class="support-line">Free, no ads, no sign-up. If it helps, consider <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">buying me a coffee</a>.</p>
+    <p class="support-line"><strong>Free and unlimited.</strong> No ads, no sign-up. If it helps, consider <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">buying me a coffee</a>.</p>
   </header>
 
   <div class="restore-banner" id="restoreBanner">
@@ -608,6 +624,10 @@
       <summary>Is it safe? Do I need to give my password?</summary>
       <div class="faq-answer">You never enter your Instagram password here. Your files are read and compared in your browser and are never uploaded to a server.</div>
     </details>
+    <details class="faq-item">
+      <summary>Can using this get my Instagram account banned?</summary>
+      <div class="faq-answer">No. Follower Analyzer never logs in to Instagram or acts on your account; it only reads the data export Instagram itself gives you. Accounts get flagged by apps that ask for your password or unfollow people automatically, and this does neither.</div>
+    </details>
     <details class="faq-item" id="faq-privacy">
       <summary>What information leaves my browser?</summary>
       <div class="faq-answer">Your export files, and the lists built from them, are never uploaded. Two things do use the network. First, the page loads Google Analytics to count visits and which steps and buttons get used, such as finishing an analysis, exporting a list or clicking Buy me a coffee. It sees the usual visit details (browser, device, rough location) and nothing from your export: no usernames, no file names and no list sizes. Second, if you press <strong>Check accounts</strong>, the usernames on your Not Following You Back list are sent to a public proxy (allorigins.win) so they can be looked up on Instagram. That only happens when you press the button. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
@@ -621,10 +641,22 @@
       <div class="faq-answer">Either works. Follower Analyzer reads both formats, and files are sorted automatically by name.</div>
     </details>
     <details class="faq-item">
+      <summary>Does it work for business and creator accounts?</summary>
+      <div class="faq-answer">Yes. Business and creator accounts export followers and following from Accounts Center the same way, and the files work exactly like a personal account's.</div>
+    </details>
+    <details class="faq-item">
       <summary>Is Follower Analyzer free?</summary>
-      <div class="faq-answer">Yes. There's no account, no app to install and no payment. If it helped you, you can <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="faq">buy me a coffee</a>, but you never have to.</div>
+      <div class="faq-answer">Yes, free and unlimited. Check as often as you like, with no account, no app to install, no payment and no limit on how many times you run it. If it helped you, you can <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="faq">buy me a coffee</a>, but you never have to.</div>
     </details>
   </section>
+
+  <nav class="guides" aria-label="Guides">
+    <h2>Guides</h2>
+    <ul>
+      <li><a href="/guides/instagram-unfollow-notifications/">Does Instagram notify someone when you unfollow them?</a> <a class="guide-lang" href="/es/guias/notificaciones-dejar-de-seguir-instagram/" hreflang="es" lang="es">Español</a></li>
+      <li><a href="/guides/see-who-unfollowed-you-on-instagram/">How to see who unfollowed you on Instagram</a> <a class="guide-lang" href="/es/guias/ver-quien-te-dejo-de-seguir-instagram/" hreflang="es" lang="es">Español</a></li>
+    </ul>
+  </nav>
 
 </div>
 
@@ -673,6 +705,14 @@
     },
     {
       "@type": "Question",
+      "name": "Can using this get my Instagram account banned?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Follower Analyzer never logs in to Instagram or acts on your account; it only reads the data export Instagram gives you. Accounts get flagged by apps that ask for your password or unfollow people automatically, and this does neither."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "What information leaves my browser?",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -697,10 +737,18 @@
     },
     {
       "@type": "Question",
+      "name": "Does it work for business and creator accounts?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Business and creator accounts export followers and following from Accounts Center the same way, and the files work like a personal account's."
+      }
+    },
+    {
+      "@type": "Question",
       "name": "Is Follower Analyzer free?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. No account, no app and no payment."
+        "text": "Yes, free and unlimited. No account, no app, no payment and no limit on how many times you check."
       }
     }
   ]
