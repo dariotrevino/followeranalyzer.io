@@ -419,7 +419,7 @@ function startOver() {
 
   dropNotes.length = 0;
   showDropNotes();
-  resetLookup();
+  resetInactiveEstimate();
   document.getElementById('results').style.display = 'none';
   document.getElementById('coffeeBanner').classList.remove('visible');
   ['searchGhosts', 'searchReverse', 'searchMutuals'].forEach(id => { document.getElementById(id).value = ''; });
@@ -472,7 +472,7 @@ function runAnalysis(options) {
   analyzed = true;
   updateZoneUI();
 
-  resetLookup();
+  resetInactiveEstimate();
   resetCompare();
   document.getElementById('results').style.display = 'block';
   renderAllLists();
@@ -620,7 +620,7 @@ function offerRestore() {
     document.getElementById('statFollowing').textContent = totals.following != null ? totals.following : '—';
     document.getElementById('statFollowers').textContent = totals.followers != null ? totals.followers : '—';
 
-    resetLookup();
+    resetInactiveEstimate();
     resetCompare();
     // A saved analysis does not record when its export was made.
     currentExportDate = 0;
@@ -671,7 +671,6 @@ function renderList(list, listId, mode) {
 
 // The one card template, used by every list. Everything that came from an
 // export file is escaped here, so no caller can put raw file text in the page.
-// badgeHTML is the exception: it must be markup built by this script only.
 function userCardHTML(u, i, opts) {
   const o = opts || {};
   return `
@@ -679,7 +678,7 @@ function userCardHTML(u, i, opts) {
       <div class="user-info">
         <div class="user-avatar${o.avatarClass || ''}">${esc(u.username.charAt(0).toUpperCase())}</div>
         <div>
-          <div class="username">@${esc(u.username)}${o.badgeHTML || ''}</div>
+          <div class="username">@${esc(u.username)}</div>
           ${u.date ? `<div class="user-meta">${esc(o.metaLabel)} ${esc(u.date)}</div>` : ''}
         </div>
       </div>
@@ -716,21 +715,15 @@ function sortUsers(list, mode) {
   return out;
 }
 
-// The accounts currently on screen for one list, after search, filter and sort.
+// The accounts currently on screen for one list, after search and sort.
 function visibleList(name) {
   const cfg = LISTS[name];
   const q = document.getElementById(cfg.search).value.toLowerCase();
-  let list = cfg.get().filter(u => u.username.includes(q));
-  if (name === 'ghosts') {
-    if (currentGhostFilter === 'found') list = list.filter(u => lookupStatus[u.username] === 'found');
-    else if (currentGhostFilter === 'notfound') list = list.filter(u => lookupStatus[u.username] === 'notfound');
-    else if (currentGhostFilter === 'unknown') list = list.filter(u => !hasAnswer(u.username));
-  }
+  const list = cfg.get().filter(u => u.username.includes(q));
   return sortUsers(list, document.getElementById(cfg.sort).value);
 }
 
 function renderNamedList(name) {
-  if (name === 'ghosts') { renderGhostListWithStatus(); return; }
   renderList(visibleList(name), LISTS[name].el, LISTS[name].mode);
 }
 
@@ -749,8 +742,7 @@ for (const name of Object.keys(LISTS)) {
 
 // ── Copy usernames ─────────────────────────────────────────────────────────
 
-// Copies what is on screen, so a search or the "Not found in search" filter
-// narrows what gets copied. The comparison lists have no search, so they
+// Copies what is on screen, so a search narrows what gets copied. The comparison lists have no search, so they
 // copy in full.
 async function copyUsernames(name, btn) {
   const list = COMPARE_LISTS[name] ? COMPARE_LISTS[name]() : visibleList(name);
@@ -961,161 +953,60 @@ document.querySelectorAll('[data-share]').forEach(btn => {
   });
 });
 
-// ── Account lookup ─────────────────────────────────────────────────────────
+
+// ── Inactive accounts ──────────────────────────────────────────────────────
 //
-// Looks each "not following back" username up in Instagram search, through a
-// public proxy. A miss is only a hint: search also hides private, restricted
-// and low-ranked accounts, so the UI says "not found in search", never
-// "deleted". This is the only code that sends list data off the device.
-//
-// Status per username: 'checking' | 'found' | 'notfound' | 'unknown'
-const lookupStatus = {};
-let verifyRunning = false;
-let lookupRun = 0;            // bumped on reset so an in-flight run stops
-let currentGhostFilter = 'all';
+// Instagram's export still lists accounts that were deactivated or deleted,
+// but the app leaves them out of the Following count on your profile. So the
+// export's count minus the profile's count is roughly how many accounts you
+// follow are inactive. They can't follow you back, so they all sit on the
+// "not following you back" list. The number typed in is only used here.
 
-const hasAnswer = username => lookupStatus[username] === 'found' || lookupStatus[username] === 'notfound';
+const appFollowingInput = document.getElementById('appFollowing');
+const inactiveResult = document.getElementById('inactiveResult');
+let inactiveTracked = false;
 
-document.getElementById('verifyBtn').addEventListener('click', startVerification);
-
-// Clears every lookup result. Called whenever the list on screen is replaced.
-function resetLookup() {
-  lookupRun++;
-  verifyRunning = false;
-  for (const name of Object.keys(lookupStatus)) delete lookupStatus[name];
-  currentGhostFilter = 'all';
-
-  const btn = document.getElementById('verifyBtn');
-  btn.disabled = false;
-  btn.textContent = 'Check accounts';
-  document.getElementById('verifyProgress').style.display = 'none';
-  document.getElementById('progressFill').style.width = '0%';
-  document.getElementById('progressText').textContent = 'Checking...';
-  document.getElementById('filterRowGhosts').style.display = 'none';
-  document.querySelectorAll('.filter-btn[data-list="ghosts"]').forEach(b => {
-    b.classList.toggle('active', b.dataset.filter === 'all');
-  });
+function setInactiveResult(text, level) {
+  inactiveResult.textContent = text;
+  inactiveResult.className = 'inactive-result' + (level ? ' ' + level : '');
 }
 
-async function startVerification() {
-  if (verifyRunning || !ghostList.length) return;
-  verifyRunning = true;
-  const run = lookupRun;
-  track('account_lookup_started');
+function updateInactiveEstimate() {
+  const exportCount = totals.following;
+  const raw = appFollowingInput.value.trim();
+  if (!raw || exportCount == null) { setInactiveResult(''); return; }
 
-  const btn = document.getElementById('verifyBtn');
-  const progress = document.getElementById('verifyProgress');
-  const fill = document.getElementById('progressFill');
-  const text = document.getElementById('progressText');
-
-  btn.disabled = true;
-  btn.textContent = 'Checking...';
-  progress.style.display = 'block';
-  fill.style.width = '0%';
-
-  // Only look up accounts that have no answer yet, so a retry does not resend
-  // usernames that were already resolved. If all have one, check them all again.
-  let targets = ghostList.filter(u => !hasAnswer(u.username));
-  if (!targets.length) targets = ghostList.slice();
-
-  const total = targets.length;
-  const BATCH = 3;
-  const DELAY = 600;
-
-  for (let i = 0; i < total; i += BATCH) {
-    const batch = targets.slice(i, i + BATCH);
-    await Promise.all(batch.map(u => checkAccount(u.username, run)));
-    if (run !== lookupRun) return;   // list was replaced or cleared mid-run
-    const done = Math.min(i + BATCH, total);
-    fill.style.width = Math.round((done / total) * 100) + '%';
-    text.textContent = 'Checked ' + done + ' of ' + total + ' accounts...';
-    renderGhostListWithStatus();
-    if (i + BATCH < total) await sleep(DELAY);
-    if (run !== lookupRun) return;
-  }
-
-  fill.style.width = '100%';
-  const count = status => ghostList.filter(u => lookupStatus[u.username] === status).length;
-  const unknownCount = count('unknown');
-  let summary = 'Done. ' + count('notfound') + ' not found in search · ' + count('found') + ' found';
-  if (unknownCount > 0) {
-    summary += ' · ' + unknownCount + ' unknown (Instagram or the proxy blocked those lookups)';
-  }
-  text.textContent = summary;
-  btn.textContent = unknownCount > 0 ? 'Retry unknowns' : 'Check again';
-  btn.disabled = false;
-  verifyRunning = false;
-
-  document.getElementById('filterRowGhosts').style.display = 'flex';
-  renderGhostListWithStatus();
-}
-
-async function checkAccount(username, run) {
-  const set = status => { if (run === lookupRun) lookupStatus[username] = status; };
-  set('checking');
-  try {
-    const target = 'https://www.instagram.com/web/search/topsearch/?query=' + encodeURIComponent(username) + '&context=blended&count=1';
-    const proxy  = 'https://api.allorigins.win/get?url=' + encodeURIComponent(target);
-
-    const res = await fetch(proxy, { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) { set('unknown'); return; }
-
-    const wrapper = await res.json();
-    const httpCode = wrapper && wrapper.status && wrapper.status.http_code;
-    if (httpCode !== 200) { set('unknown'); return; }
-
-    const body = wrapper.contents || '';
-    let data;
-    try { data = JSON.parse(body); } catch { set('unknown'); return; }
-
-    // A response that is not a search result (login page, error) tells us nothing.
-    if (!data || !Array.isArray(data.users)) { set('unknown'); return; }
-
-    const found = data.users.some(u => {
-      const u2 = (u && u.user) || u;
-      return String((u2 && u2.username) || '').toLowerCase() === username;
-    });
-
-    set(found ? 'found' : 'notfound');
-  } catch {
-    set('unknown');
-  }
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-const STATUS_BADGES = {
-  notfound: '<span class="status-badge">not found in search</span>',
-  checking: '<span class="status-badge muted">checking...</span>',
-  unknown:  '<span class="status-badge warn">unknown</span>'
-};
-
-function renderGhostListWithStatus() {
-  const list = visibleList('ghosts');
-  const el = document.getElementById('listGhosts');
-
-  // Nothing to filter yet: show the same "everyone follows you back" message
-  // as the other lists.
-  if (list.length === 0 && Object.keys(lookupStatus).length === 0) {
-    renderList(list, 'listGhosts', 'ghost');
-    return;
-  }
-  if (list.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="big">🎉</div>No accounts match this filter.</div>';
+  const appCount = Number(raw);
+  if (!Number.isInteger(appCount) || appCount < 0) {
+    setInactiveResult('Enter the number shown under Following on your Instagram profile.', 'warn');
     return;
   }
 
-  el.innerHTML = list.map((u, i) => userCardHTML(u, i, {
-    metaLabel: 'You followed',
-    badgeHTML: STATUS_BADGES[lookupStatus[u.username]] || ''
-  })).join('');
+  const gap = exportCount - appCount;
+  const fmt = n => n.toLocaleString();
+  if (gap > 0 && gap <= ghostList.length) {
+    setInactiveResult('About ' + fmt(gap) + ' of the ' + fmt(ghostList.length) + ' accounts on this list are probably inactive. Instagram’s export still lists them, but your profile doesn’t count them.', 'ok');
+  } else if (gap > 0) {
+    setInactiveResult('Your export lists ' + fmt(gap) + ' more accounts than Instagram shows, more than this whole list. You’ve probably unfollowed people since you exported.', 'warn');
+  } else if (gap === 0) {
+    setInactiveResult('Your export matches Instagram exactly, so the accounts on this list are probably all active.', 'ok');
+  } else {
+    setInactiveResult('Instagram shows ' + fmt(-gap) + ' more than your export. You’ve probably followed people since you exported, or the export’s date range wasn’t All time.', 'warn');
+  }
+
+  if (!inactiveTracked) { inactiveTracked = true; track('inactive_estimate'); }
 }
 
-document.addEventListener('click', e => {
-  const btn = e.target.closest('.filter-btn');
-  if (!btn || btn.dataset.list !== 'ghosts') return;
-  document.querySelectorAll('.filter-btn[data-list="ghosts"]').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentGhostFilter = btn.dataset.filter;
-  renderGhostListWithStatus();
-});
+// Called whenever the lists on screen are replaced.
+function resetInactiveEstimate() {
+  appFollowingInput.value = '';
+  setInactiveResult('');
+  inactiveTracked = false;
+  document.getElementById('exportFollowingCount').textContent = totals.following != null ? totals.following.toLocaleString() : '';
+  // The estimate needs the export's Following count and at least one account
+  // on the list.
+  document.getElementById('inactiveEstimate').hidden = totals.following == null || !ghostList.length;
+  document.getElementById('inactiveCard').hidden = !ghostList.length;
+}
+
+appFollowingInput.addEventListener('input', updateInactiveEstimate);

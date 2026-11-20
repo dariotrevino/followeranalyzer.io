@@ -9,14 +9,14 @@
   - script-src: only this site's own files and Google's tag script can run.
     Inline script is blocked, which is what stops a crafted export file from
     running code. Keep all JavaScript in .js files, never in this HTML.
-  - connect-src: the only places this page can send data are Google Analytics
-    and the allorigins proxy used by the optional account lookup. Google's tag
+  - connect-src: the only place this page can send data is Google Analytics.
+    Nothing from a visitor's export is ever sent anywhere. Google's tag
     sends some hits to google.com and doubleclick.net, so those are listed too
     (Google's documented CSP for GA4); without them those visits go uncounted.
   If you add a new third-party script, font or API, add it here or it will be
   blocked (the browser console shows what was refused).
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
 <meta name="description" content="Free, unlimited Instagram follower analyzer. See who unfollowed you and find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
@@ -261,31 +261,19 @@
   .search-box:focus, .sort-select:focus, .sort-select:hover { border-color: var(--accent2); }
   @media (max-width: 520px) { .panel-controls { width: 100%; } .search-box { flex: 1; width: auto; min-width: 0; } }
 
-  /* Account lookup: one compact row, details on request */
-  .verify-bar { margin-bottom: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .verify-left { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 240px; }
-  .verify-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--text); }
-  .verify-title .icon { width: 16px; height: 16px; color: var(--accent2); }
-  .verify-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
-  .verify-more { font-size: 13px; color: var(--muted); }
-  .verify-more summary { cursor: pointer; width: fit-content; text-decoration: underline; text-underline-offset: 3px; }
-  .verify-more summary:hover { color: var(--text); }
-  .verify-more p { margin-top: 6px; line-height: 1.55; }
-  .verify-note { color: var(--accent2); }
-  .verify-btn { padding: 9px 16px; background: transparent; border: 1px solid var(--accent2); border-radius: var(--radius-sm); color: var(--accent2); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
-  .verify-btn:hover { background: var(--accent2); color: #000; }
-  .verify-btn:disabled { opacity: 0.45; cursor: not-allowed; background: transparent; color: var(--accent2); }
-  .verify-progress { width: 100%; margin-top: 8px; display: none; }
-  .progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
-  .progress-fill { height: 100%; background: var(--accent2); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
-  .progress-text { font-family: var(--mono); font-size: 11px; color: var(--muted); }
-  .status-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 5px; background: rgba(255,92,92,0.1); border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
-  .status-badge.muted { border-color: var(--muted); color: var(--muted); background: transparent; }
-  .status-badge.warn { border-color: var(--accent2); color: var(--accent2); background: transparent; }
-  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-  .filter-btn { font-family: var(--sans); font-size: 13px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
-  .filter-btn.active { border-color: var(--accent); color: var(--text); background: rgba(255,92,92,0.12); }
-  .filter-btn:hover:not(.active) { border-color: var(--border-strong); color: var(--text); }
+  /* Inactive accounts: explanation plus an optional estimate */
+  .inactive-card { margin-bottom: 14px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; gap: 14px; }
+  .inactive-head { display: flex; gap: 12px; align-items: flex-start; }
+  .inactive-head .icon { width: 20px; height: 20px; margin-top: 1px; color: var(--accent2); }
+  .inactive-title { font-weight: 600; font-size: 14.5px; color: var(--text); }
+  .inactive-desc { margin-top: 3px; font-size: 13.5px; color: var(--body); line-height: 1.6; }
+  .inactive-estimate { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .inactive-estimate label { flex: 1 1 320px; font-size: 13.5px; color: var(--body); line-height: 1.55; }
+  .inactive-estimate input { width: 160px; font-variant-numeric: tabular-nums; }
+  .inactive-result { flex-basis: 100%; font-size: 13.5px; line-height: 1.55; }
+  .inactive-result:empty { display: none; }
+  .inactive-result.ok { color: var(--green); }
+  .inactive-result.warn { color: var(--accent2); }
 
   /* The account list: one card, rows separated by hairlines */
   .user-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -418,6 +406,7 @@
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
     <symbol id="i-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5v4h4"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-user-off" viewBox="0 0 24 24"><circle cx="10" cy="8" r="4"/><path d="M3 20c0-3.6 3.1-6.5 7-6.5 1.4 0 2.7.4 3.8 1"/><path d="M16.5 15.5l5 5M21.5 15.5l-5 5"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
     <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#181821"/><circle cx="12.3" cy="16" r="7.6" fill="#ff5c5c"/><circle cx="19.7" cy="16" r="7.6" fill="#181821" stroke="#f0eee8" stroke-width="2.4"/></symbol>
   </defs>
@@ -542,27 +531,19 @@
           <input class="search-box" id="searchGhosts" type="search" placeholder="Search usernames" aria-label="Search usernames you follow who don&#39;t follow back" />
         </div>
       </div>
-      <div class="verify-bar" id="verifyBar">
-        <div class="verify-left">
-          <div class="verify-title"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Spot deleted or deactivated accounts</div>
-          <div class="verify-desc">Looks each username up on Instagram. “Not found” can also mean private or hidden from search, so open the profile to confirm.</div>
-          <details class="verify-more">
-            <summary>What this sends</summary>
-            <p>This sends these usernames to a public proxy (allorigins.win). It is the only feature that sends anything from your lists off your device, and it only runs when you press the button.</p>
-            <p class="verify-note">Many “unknown” results mean Instagram or the proxy blocked the lookups, not that your data is wrong. Try again later. Only the unknown ones are checked again.</p>
-          </details>
-          <div class="verify-progress" id="verifyProgress">
-            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-            <div class="progress-text" id="progressText">Checking...</div>
+      <div class="inactive-card" id="inactiveCard">
+        <div class="inactive-head">
+          <svg class="icon" aria-hidden="true"><use href="#i-user-off"/></svg>
+          <div>
+            <div class="inactive-title">Many of these may be inactive accounts</div>
+            <p class="inactive-desc">Instagram's export still lists accounts that were deactivated or deleted, and they can't follow you back. Tap <strong>View Profile</strong>: if Instagram says "Sorry, this page isn't available", the account is gone, or it has blocked you.</p>
           </div>
         </div>
-        <button class="verify-btn" id="verifyBtn">Check accounts</button>
-      </div>
-      <div class="filter-row" id="filterRowGhosts" style="display:none">
-        <button class="filter-btn active" data-filter="all" data-list="ghosts">All</button>
-        <button class="filter-btn" data-filter="found" data-list="ghosts">Found</button>
-        <button class="filter-btn" data-filter="notfound" data-list="ghosts">Not found in search</button>
-        <button class="filter-btn" data-filter="unknown" data-list="ghosts">Unknown / unchecked</button>
+        <div class="inactive-estimate" id="inactiveEstimate">
+          <label for="appFollowing">Your export lists <strong id="exportFollowingCount"></strong> accounts you follow. What does your Instagram profile show under <strong>Following</strong>?</label>
+          <input class="search-box" id="appFollowing" type="number" inputmode="numeric" min="0" step="1" placeholder="Following count" />
+          <p class="inactive-result" id="inactiveResult" aria-live="polite"></p>
+        </div>
       </div>
       <div class="user-list" id="listGhosts"></div>
       <div class="export-row">
@@ -739,11 +720,11 @@
     </details>
     <details class="faq-item" id="faq-privacy">
       <summary>What information leaves my browser?</summary>
-      <div class="faq-answer">Your export files, and the lists built from them, are never uploaded. Two things do use the network. First, the page loads Google Analytics to count visits and which steps and buttons get used, such as finishing an analysis, exporting a list or clicking Buy me a coffee. It sees the usual visit details (browser, device, rough location) and nothing from your export: no usernames, no file names and no list sizes. Second, if you press <strong>Check accounts</strong>, the usernames on your Not Following You Back list are sent to a public proxy (allorigins.win) so they can be looked up on Instagram. That only happens when you press the button. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
+      <div class="faq-answer">Nothing from your export. The files, and the lists built from them, are never uploaded or sent anywhere. The only thing on this page that uses the network is Google Analytics, which counts visits and which steps and buttons get used, such as finishing an analysis, exporting a list or clicking Buy me a coffee. It sees the usual visit details (browser, device, rough location) and nothing from your export: no usernames, no file names and no list sizes. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
     </details>
     <details class="faq-item">
       <summary>Why don't my numbers match the Instagram app?</summary>
-      <div class="faq-answer">Usually the export's date range wasn't set to All time, so older follows are missing. Deactivated or deleted accounts can also appear in your export but not in the app. The account lookup on the Not Following You Back tab can help you spot them.</div>
+      <div class="faq-answer">Usually because of inactive accounts. Instagram's export still lists accounts that were deactivated or deleted, but your profile doesn't count them, so the export's "You follow" number is often higher than the app's. On the Not Following You Back tab, enter the Following number from your profile to see roughly how many are inactive. If the export is missing people instead, its date range probably wasn't set to All time.</div>
     </details>
     <details class="faq-item">
       <summary>Should I export as JSON or HTML?</summary>
@@ -853,7 +834,7 @@
       "name": "What information leaves my browser?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Your export files, and the lists built from them, are never uploaded. The page loads Google Analytics to count visits and which buttons get used, which sees the usual visit details and nothing from your export. If you press Check accounts, the usernames on your Not Following You Back list are sent to a public proxy so they can be looked up on Instagram. Nothing is saved in your browser unless you tick Remember this analysis."
+        "text": "Nothing from your export. The files and the lists built from them are never uploaded or sent anywhere. The only thing that uses the network is Google Analytics, which counts visits and which buttons get used and sees nothing from your export. Nothing is saved in your browser unless you tick Remember this analysis."
       }
     },
     {
@@ -861,7 +842,7 @@
       "name": "Why don't my numbers match the Instagram app?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The export's date range usually wasn't set to All time. Deactivated or deleted accounts can also appear in the export but not in the app."
+        "text": "Usually because of inactive accounts. Instagram's export still lists accounts that were deactivated or deleted, but your profile doesn't count them, so the export's following number is often higher. If the export is missing people instead, its date range probably wasn't set to All time."
       }
     },
     {
