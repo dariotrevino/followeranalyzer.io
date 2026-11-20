@@ -18,7 +18,7 @@
 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
-<meta name="description" content="Free, unlimited Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
+<meta name="description" content="Free, unlimited Instagram follower analyzer. See who unfollowed you and find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://followeranalyzer.io/" />
@@ -111,7 +111,8 @@
   .hero { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr); gap: 56px; align-items: center; padding: 44px 0 64px; }
   @media (max-width: 900px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 20px 0 48px; } }
   .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
-  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(255,92,92,0.15); }
+  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(255,92,92,0.55); animation: pulse 2.4s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,92,92,0.55); } 70% { box-shadow: 0 0 0 9px rgba(255,92,92,0); } 100% { box-shadow: 0 0 0 0 rgba(255,92,92,0); } }
   h1 { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 4.7vw, 54px); line-height: 1.02; letter-spacing: -0.03em; color: var(--text); margin-bottom: 20px; text-wrap: balance; }
   h1 .hl { color: var(--accent); }
   .lead { font-size: 17px; line-height: 1.65; color: var(--body); max-width: 520px; }
@@ -228,10 +229,20 @@
   /* Tabs: a segmented control; each tab carries its list's color */
   .tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 18px; overflow-x: auto; scrollbar-width: none; }
   .tabs::-webkit-scrollbar { display: none; }
+  /* Phones: all four tabs visible at once, two per row */
+  @media (max-width: 640px) {
+    .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+    .tabs .tab-btn { justify-content: flex-start; padding: 10px 11px; font-size: 13px; white-space: normal; text-align: left; line-height: 1.25; min-width: 0; }
+    .tabs .tab-label { flex: 1 1 auto; min-width: 0; }
+    .tabs .tab-btn::before, .tabs .tab-count, .tabs .tab-new { flex-shrink: 0; }
+  }
   .tab-btn { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: none; border: none; color: var(--muted); font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 10px 14px; border-radius: 9px; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
   .tab-btn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--accent)); }
   .tab-btn[data-tab="reverse"] { --dot: var(--blue); }
   .tab-btn[data-tab="mutuals"] { --dot: var(--purple); }
+  .tab-btn[data-tab="unfollowed"] { --dot: var(--accent2); }
+  .tab-new { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #0a0a0f; background: var(--accent2); border-radius: 20px; padding: 1px 7px; }
+  .tab-count:not(:empty) + .tab-new { display: none; }
   .tab-btn:hover { color: var(--text); }
   .tab-btn.active { background: var(--surface-2); color: var(--text); box-shadow: 0 0 0 1px var(--border-strong) inset; }
   .tab-count { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); background: var(--bg); border-radius: 20px; padding: 1px 8px; }
@@ -297,6 +308,21 @@
   .empty-state .big { font-size: 40px; margin-bottom: 8px; }
 
   .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* Who unfollowed you */
+  .compare-intro { margin-bottom: 14px; }
+  .compare-intro p { margin-top: 6px; font-size: 14.5px; color: var(--body); max-width: 620px; }
+  .compare-zone { padding: 28px 20px 22px; background: var(--surface); }
+  .compare-zone .drop-icon { background: rgba(255,154,60,0.12); color: var(--accent2); }
+  .compare-zone:hover { border-color: var(--accent2); background: rgba(255,154,60,0.05); }
+  .compare-tip { margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+  .compare-summary { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .compare-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
+  .list-heading { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--text); margin: 22px 0 10px; }
+  .compare-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .user-avatar.orange { background: linear-gradient(140deg, rgba(255,154,60,0.25), rgba(255,154,60,0.08)); color: var(--accent2); }
+  .user-avatar.green { background: linear-gradient(140deg, rgba(60,255,165,0.22), rgba(60,255,165,0.06)); color: var(--green); }
+  .user-card.compare-row:hover { background: rgba(255,154,60,0.05); }
   .export-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--body); background: var(--surface); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
   .export-btn:hover { border-color: var(--accent2); color: var(--accent2); }
 
@@ -391,6 +417,7 @@
     <symbol id="i-infinity" viewBox="0 0 24 24"><path d="M6.5 8.5C4 8.5 2.5 10.2 2.5 12s1.5 3.5 4 3.5c3.5 0 7.5-7 11-7 2.5 0 4 1.7 4 3.5s-1.5 3.5-4 3.5c-3.5 0-7.5-7-11-7z"/></symbol>
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3 4.5v4h4"/><path d="M12 7.5V12l3 2"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
     <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#181821"/><circle cx="12.3" cy="16" r="7.6" fill="#ff5c5c"/><circle cx="19.7" cy="16" r="7.6" fill="#181821" stroke="#f0eee8" stroke-width="2.4"/></symbol>
   </defs>
@@ -422,7 +449,7 @@
     <div class="pitch">
       <p class="eyebrow">Instagram follower checker</p>
       <h1>See who doesn't <span class="hl">follow you back</span></h1>
-      <p class="lead">Drop the data export Instagram gives you and get three lists in seconds: who doesn't follow you back, who you don't follow back, and your mutuals.</p>
+      <p class="lead">Add the data export Instagram gives you and see who doesn't follow you back, who you don't follow back, and your mutuals in seconds. Add an older export too, and see who unfollowed you.</p>
       <ul class="trust">
         <li><svg class="icon"><use href="#i-lock"/></svg><span><strong>Your files stay on your device.</strong> They're read in your browser and never uploaded. <a href="#faq-privacy">What does leave the page?</a></span></li>
         <li><svg class="icon"><use href="#i-key"/></svg><span><strong>No login, no password.</strong> Nothing touches your Instagram account.</span></li>
@@ -496,9 +523,10 @@
     </label>
 
     <div class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true">Not following you back <span class="tab-count" id="countGhosts"></span></button>
-      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false">You don't follow back <span class="tab-count" id="countReverse"></span></button>
-      <button class="tab-btn" data-tab="mutuals" role="tab" aria-selected="false">Mutuals <span class="tab-count" id="countMutuals"></span></button>
+      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true"><span class="tab-label">Not following you back</span> <span class="tab-count" id="countGhosts"></span></button>
+      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false"><span class="tab-label">You don't follow back</span> <span class="tab-count" id="countReverse"></span></button>
+      <button class="tab-btn" data-tab="mutuals" role="tab" aria-selected="false"><span class="tab-label">Mutuals</span> <span class="tab-count" id="countMutuals"></span></button>
+      <button class="tab-btn" data-tab="unfollowed" role="tab" aria-selected="false"><span class="tab-label">Unfollowed you</span> <span class="tab-count" id="countUnfollowed"></span><span class="tab-new">New</span></button>
     </div>
 
     <div class="tab-panel active" id="panel-ghosts">
@@ -583,6 +611,52 @@
       </div>
     </div>
 
+    <div class="tab-panel" id="panel-unfollowed">
+      <div id="compareStart">
+        <div class="compare-intro">
+          <div class="panel-title">See who unfollowed you</div>
+          <p>Add an Instagram export you downloaded before this one. Its followers are compared with today's to show who left and who's new. It's read on your device, just like this one.</p>
+        </div>
+        <div class="drop-zone compare-zone" id="compareZone">
+          <input type="file" id="compareFile" accept=".html,.htm,.json,.zip" multiple aria-label="Choose an older Instagram export" />
+          <div class="drop-icon" aria-hidden="true"><svg class="icon"><use href="#i-history"/></svg></div>
+          <div class="drop-label">Add your older ZIP here</div>
+          <div class="drop-hint">An export from a few weeks or months ago. Only its followers list is used.</div>
+          <div class="drop-status-wrap"><div class="drop-status" id="compareStatus" aria-live="polite"></div></div>
+        </div>
+        <p class="compare-tip"><strong>No older export yet?</strong> Keep the ZIP you just used. Next time, add it here to see exactly who unfollowed you since today.</p>
+      </div>
+
+      <div id="compareResults" hidden>
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Who unfollowed you</div>
+            <div class="compare-summary" id="compareSummary"></div>
+          </div>
+          <button type="button" class="text-btn" id="compareAgain">Compare with a different export</button>
+        </div>
+        <div class="compare-stats">
+          <div class="stat-card"><div class="stat-num orange" id="statUnfollowed">0</div><div class="stat-label">Unfollowed you</div></div>
+          <div class="stat-card"><div class="stat-num green" id="statNewFollowers">0</div><div class="stat-label">New followers</div></div>
+        </div>
+
+        <h3 class="list-heading">Unfollowed you</h3>
+        <div class="user-list" id="listUnfollowed"></div>
+        <p class="compare-note">Accounts that were deactivated or deleted show up here too. Open a profile to check.</p>
+        <div class="export-row">
+          <button class="export-btn" id="exportUnfollowed">⬇ Export as CSV</button>
+          <button class="export-btn" type="button" data-copy="unfollowed">⧉ Copy usernames</button>
+        </div>
+
+        <h3 class="list-heading">New followers</h3>
+        <div class="user-list" id="listNewFollowers"></div>
+        <div class="export-row">
+          <button class="export-btn" id="exportNewFollowers">⬇ Export as CSV</button>
+          <button class="export-btn" type="button" data-copy="newfollowers">⧉ Copy usernames</button>
+        </div>
+      </div>
+    </div>
+
     <div class="support-card">
       <p><strong>Found what you were looking for?</strong><br>Follower Analyzer is free and ad-free, kept running by coffees from people it helped.</p>
       <div class="support-actions">
@@ -646,6 +720,10 @@
     <details class="faq-item">
       <summary>How do I see who doesn't follow me back on Instagram?</summary>
       <div class="faq-answer">Export your followers and following data from Instagram (Account Center, then Your Information and Permissions, then Export your information) with the date range set to <strong>All time</strong>. Drop the ZIP, or the followers and following files, onto this page. You'll get three lists: people who don't follow you back, people you don't follow back, and mutuals.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Can I see who unfollowed me on Instagram?</summary>
+      <div class="faq-answer">Yes, by comparing two exports. Analyze today's export, then open the <strong>Unfollowed you</strong> tab and add one you downloaded earlier: you'll see who unfollowed you and who started following you in between. Instagram doesn't keep that list itself, so if you don't have an older export yet, keep today's for next time.</div>
     </details>
     <details class="faq-item">
       <summary>Does Instagram notify anyone when I check?</summary>
@@ -736,6 +814,14 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Export your followers and following data from Instagram with the date range set to All time, then drop the ZIP or the files onto Follower Analyzer. You get lists of who doesn't follow you back, who you don't follow back, and mutuals."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I see who unfollowed me on Instagram?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, by comparing two exports. Analyze today's export, then open the Unfollowed you tab and add one you downloaded earlier to see who unfollowed you and who started following you in between."
       }
     },
     {

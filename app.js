@@ -274,54 +274,72 @@ function showDropNotes() {
 
 const shortName = name => (name.length > 48 ? name.slice(0, 45) + '…' : name);
 
+// The latest of a set of times, or 0. Only times Instagram wrote into an
+// export ZIP are used: a loose file's date is when it was saved or unzipped
+// on this device, which can be much later than the export itself.
+function latestTime(times) {
+  return times.reduce((max, t) => (Number.isFinite(t) && t > max ? t : max), 0);
+}
+
+// Reads the followers and following lists out of an export ZIP without
+// touching the analysis on screen. Throws if the file is not a readable ZIP.
+async function readZipLists(file) {
+  const ZipLib = window['JSZip'];
+  if (!ZipLib) throw new Error('nozip');
+  const zip = await ZipLib.loadAsync(await readFileAsArrayBuffer(file));
+  const followerEntries = [];
+  const followingEntries = [];
+
+  zip.forEach((relativePath, entry) => {
+    if (entry.dir) return;
+    const kind = classifyPath(relativePath);
+    if (kind === 'followers') followerEntries.push(entry);
+    else if (kind === 'following') followingEntries.push(entry);
+  });
+
+  const preferConn = entries => {
+    const preferred = entries.filter(e => /followers_and_following/i.test(e.name));
+    return preferred.length ? preferred : entries;
+  };
+
+  const folFiles = preferConn(followerEntries);
+  const fingFiles = preferConn(followingEntries);
+
+  let followers = [];
+  for (const entry of folFiles) {
+    followers = mergeUsers(followers, parseFile(await entry.async('string'), entry.name));
+  }
+  let following = [];
+  for (const entry of fingFiles) {
+    following = mergeUsers(following, parseFile(await entry.async('string'), entry.name));
+  }
+  const date = latestTime(folFiles.concat(fingFiles).map(e => (e.date ? e.date.getTime() : 0)));
+  return { followers, following, folCount: folFiles.length, fingCount: fingFiles.length, date };
+}
+
+// When the export on screen was made (0 if unknown). Used to put a
+// comparison with another export in the right order.
+let currentExportDate = 0;
+
 // A ZIP is a whole export, so the lists it holds replace what was loaded.
 async function handleZip(file) {
-  const ZipLib = window['JSZip'];
-  if (!ZipLib) {
+  if (!window['JSZip']) {
     note('✗ ZIP support did not load. Unzip the export and drop the followers and following files instead.', 'error');
     return;
   }
   try {
-    const buf = await readFileAsArrayBuffer(file);
-    const zip = await ZipLib.loadAsync(buf);
-    const followerEntries = [];
-    const followingEntries = [];
-
-    zip.forEach((relativePath, entry) => {
-      if (entry.dir) return;
-      const kind = classifyPath(relativePath);
-      if (kind === 'followers') followerEntries.push(entry);
-      else if (kind === 'following') followingEntries.push(entry);
-    });
-
-    const preferConn = entries => {
-      const preferred = entries.filter(e => /followers_and_following/i.test(e.name));
-      return preferred.length ? preferred : entries;
-    };
-
-    const folFiles = preferConn(followerEntries);
-    const fingFiles = preferConn(followingEntries);
-
-    let allFollowers = [];
-    for (const entry of folFiles) {
-      const text = await entry.async('string');
-      allFollowers = mergeUsers(allFollowers, parseFile(text, entry.name));
-    }
-    let allFollowing = [];
-    for (const entry of fingFiles) {
-      const text = await entry.async('string');
-      allFollowing = mergeUsers(allFollowing, parseFile(text, entry.name));
-    }
+    const { followers: allFollowers, following: allFollowing, folCount, fingCount, date } = await readZipLists(file);
 
     if (allFollowers.length) followersData = allFollowers;
     if (allFollowing.length) followingData = allFollowing;
+    if (allFollowers.length || allFollowing.length) currentExportDate = date;
 
     if (!allFollowers.length && !allFollowing.length) {
       note('✗ No followers or following lists found in ' + shortName(file.name) + '. Export “Followers and following” from Instagram, then drop that ZIP.', 'error');
     } else {
       const bits = [];
-      if (allFollowers.length) bits.push(folFiles.length + ' followers file(s)');
-      if (allFollowing.length) bits.push(fingFiles.length + ' following file(s)');
+      if (allFollowers.length) bits.push(folCount + ' followers file(s)');
+      if (allFollowing.length) bits.push(fingCount + ' following file(s)');
       note('✓ Read ' + bits.join(' and ') + ' from ' + shortName(file.name), 'ok');
     }
   } catch (err) {
@@ -346,10 +364,10 @@ async function processDrop(files) {
       const users = parseFile(await readFile(file), file.name);
       if (!users.length) {
         note('✗ No accounts found in ' + shortName(file.name) + '. Is it the right file?', 'error');
-      } else if (kind === 'followers') {
-        followersData = mergeUsers(followersData, users);
       } else {
-        followingData = mergeUsers(followingData, users);
+        if (kind === 'followers') followersData = mergeUsers(followersData, users);
+        else followingData = mergeUsers(followingData, users);
+        currentExportDate = 0;   // loose files: when the export was made is unknown
       }
     } catch {
       note('✗ Could not read ' + shortName(file.name) + '.', 'error');
@@ -396,6 +414,8 @@ function startOver() {
   totals = { following: null, followers: null };
   analyzed = false;
   filesReadyTracked = false;
+  currentExportDate = 0;
+  resetCompare();
 
   dropNotes.length = 0;
   showDropNotes();
@@ -453,6 +473,7 @@ function runAnalysis(options) {
   updateZoneUI();
 
   resetLookup();
+  resetCompare();
   document.getElementById('results').style.display = 'block';
   renderAllLists();
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -600,6 +621,9 @@ function offerRestore() {
     document.getElementById('statFollowers').textContent = totals.followers != null ? totals.followers : '—';
 
     resetLookup();
+    resetCompare();
+    // A saved analysis does not record when its export was made.
+    currentExportDate = 0;
 
     document.getElementById('results').style.display = 'block';
     renderAllLists();
@@ -726,9 +750,10 @@ for (const name of Object.keys(LISTS)) {
 // ── Copy usernames ─────────────────────────────────────────────────────────
 
 // Copies what is on screen, so a search or the "Not found in search" filter
-// narrows what gets copied.
+// narrows what gets copied. The comparison lists have no search, so they
+// copy in full.
 async function copyUsernames(name, btn) {
-  const list = visibleList(name);
+  const list = COMPARE_LISTS[name] ? COMPARE_LISTS[name]() : visibleList(name);
   const text = list.map(u => '@' + u.username).join('\n');
   const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
   let ok = false;
@@ -755,6 +780,135 @@ async function copyUsernames(name, btn) {
 document.querySelectorAll('[data-copy]').forEach(btn => {
   btn.addEventListener('click', () => copyUsernames(btn.dataset.copy, btn));
 });
+
+
+// ── Who unfollowed you ─────────────────────────────────────────────────────
+//
+// Compares the followers in an older export with the followers on screen.
+// Anyone in the older list but not the newer one unfollowed you (or
+// deactivated their account); anyone only in the newer one is a new follower.
+// Like everything else, the older export is read on this device only.
+
+let unfollowedList = [];
+let newFollowerList = [];
+let compareRunning = false;
+
+const COMPARE_LISTS = { unfollowed: () => unfollowedList, newfollowers: () => newFollowerList };
+
+const compareZone = document.getElementById('compareZone');
+const compareFile = document.getElementById('compareFile');
+const compareStatus = document.getElementById('compareStatus');
+
+// The followers in the analysis on screen. A large saved analysis keeps only
+// the three result lists, but everyone who follows you is either a mutual or
+// someone you don't follow back, so the full list can be rebuilt from those.
+function currentFollowers() {
+  return followersData || mergeUsers(reverseList.slice(), mutualList);
+}
+
+// Reads an older export (a ZIP, or loose followers files) without touching
+// the analysis on screen.
+async function readOlderExport(files) {
+  let followers = [];
+  let date = 0;
+  for (const file of files) {
+    if (/\.zip$/i.test(file.name)) {
+      const lists = await readZipLists(file);
+      followers = mergeUsers(followers, lists.followers);
+      date = latestTime([date, lists.date]);
+    } else if (classifyPath(file.name) === 'followers') {
+      followers = mergeUsers(followers, parseFile(await readFile(file), file.name));
+    }
+  }
+  return { followers, date };
+}
+
+const formatDay = t => new Date(t).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+function setCompareStatus(text, level) {
+  compareStatus.textContent = text;
+  compareStatus.className = 'drop-status' + (level ? ' ' + level : '');
+}
+
+async function runCompare(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length || compareRunning) return;
+  compareRunning = true;
+  setCompareStatus('Reading…', 'warn');
+  try {
+    const older = await readOlderExport(files);
+    if (!older.followers.length) {
+      setCompareStatus('✗ No followers list found. Add an Instagram export ZIP, or its followers_1 file.', 'error');
+      return;
+    }
+
+    // Put the two exports in time order. If the added one turns out to be
+    // newer than the one on screen, compare the other way round.
+    let before = older.followers, after = currentFollowers();
+    let beforeDate = older.date, afterDate = currentExportDate;
+    if (beforeDate && afterDate && beforeDate > afterDate) {
+      [before, after] = [after, before];
+      [beforeDate, afterDate] = [afterDate, beforeDate];
+    }
+
+    const afterSet = new Set(after.map(u => u.username));
+    const beforeSet = new Set(before.map(u => u.username));
+    unfollowedList = before.filter(u => !afterSet.has(u.username));
+    newFollowerList = after.filter(u => !beforeSet.has(u.username));
+
+    showCompareResults(beforeDate, afterDate);
+    track('compare_completed');
+  } catch {
+    setCompareStatus('✗ Could not read that file. Try the ZIP Instagram sent you, or unzip it and add followers_1.', 'error');
+  } finally {
+    compareRunning = false;
+    compareFile.value = '';
+  }
+}
+
+function showCompareResults(beforeDate, afterDate) {
+  const n = unfollowedList.length, m = newFollowerList.length;
+  const since = beforeDate ? 'Since ' + formatDay(beforeDate) : 'Since your older export';
+  const until = beforeDate && afterDate ? ' (compared with ' + formatDay(afterDate) + ')' : '';
+  document.getElementById('compareSummary').textContent = since + until;
+  document.getElementById('statUnfollowed').textContent = n.toLocaleString();
+  document.getElementById('statNewFollowers').textContent = m.toLocaleString();
+  document.getElementById('countUnfollowed').textContent = n.toLocaleString();
+
+  const card = (u, i, avatarClass) => userCardHTML(u, i, { cardClass: ' compare-row', avatarClass, metaLabel: 'Followed you' });
+  document.getElementById('listUnfollowed').innerHTML = n
+    ? unfollowedList.map((u, i) => card(u, i, ' orange')).join('')
+    : '<div class="empty-state"><div class="big">🎉</div>Nobody unfollowed you in that time.</div>';
+  document.getElementById('listNewFollowers').innerHTML = m
+    ? newFollowerList.map((u, i) => card(u, i, ' green')).join('')
+    : '<div class="empty-state">No new followers in that time.</div>';
+
+  document.getElementById('compareStart').hidden = true;
+  document.getElementById('compareResults').hidden = false;
+}
+
+function resetCompare() {
+  unfollowedList = [];
+  newFollowerList = [];
+  setCompareStatus('');
+  document.getElementById('countUnfollowed').textContent = '';
+  document.getElementById('listUnfollowed').innerHTML = '';
+  document.getElementById('listNewFollowers').innerHTML = '';
+  document.getElementById('compareStart').hidden = false;
+  document.getElementById('compareResults').hidden = true;
+}
+
+compareFile.addEventListener('change', () => runCompare(compareFile.files));
+compareZone.addEventListener('dragover', e => { e.preventDefault(); compareZone.classList.add('drag-over'); });
+compareZone.addEventListener('dragleave', () => compareZone.classList.remove('drag-over'));
+compareZone.addEventListener('drop', e => {
+  e.preventDefault();
+  compareZone.classList.remove('drag-over');
+  runCompare(e.dataTransfer.files);
+});
+document.getElementById('compareAgain').addEventListener('click', resetCompare);
+document.getElementById('exportUnfollowed').addEventListener('click', () => { exportCSV(unfollowedList, 'unfollowed_you.csv'); track('csv_export', { list: 'unfollowed' }); });
+document.getElementById('exportNewFollowers').addEventListener('click', () => { exportCSV(newFollowerList, 'new_followers.csv'); track('csv_export', { list: 'newfollowers' }); });
 
 // Usernames and links are validated, so only the free-text date needs care:
 // quote it, and stop a spreadsheet from running it as a formula.
