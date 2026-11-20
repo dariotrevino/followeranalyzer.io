@@ -1,7 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://followeranalyzer.io/</loc>
-    <lastmod>2026-11-15</lastmod>
+    <lastmod>2026-11-20</lastmod>
+  </url>
+  <url>
+    <loc>https://followeranalyzer.io/guides/instagram-unfollow-notifications/</loc>
+    <lastmod>2026-11-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://followeranalyzer.io/guides/instagram-unfollow-notifications/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://followeranalyzer.io/es/guias/notificaciones-dejar-de-seguir-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://followeranalyzer.io/guides/instagram-unfollow-notifications/"/>
+  </url>
+  <url>
+    <loc>https://followeranalyzer.io/es/guias/notificaciones-dejar-de-seguir-instagram/</loc>
+    <lastmod>2026-11-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://followeranalyzer.io/guides/instagram-unfollow-notifications/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://followeranalyzer.io/es/guias/notificaciones-dejar-de-seguir-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://followeranalyzer.io/guides/instagram-unfollow-notifications/"/>
+  </url>
+  <url>
+    <loc>https://followeranalyzer.io/guides/see-who-unfollowed-you-on-instagram/</loc>
+    <lastmod>2026-11-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://followeranalyzer.io/guides/see-who-unfollowed-you-on-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://followeranalyzer.io/es/guias/ver-quien-te-dejo-de-seguir-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://followeranalyzer.io/guides/see-who-unfollowed-you-on-instagram/"/>
+  </url>
+  <url>
+    <loc>https://followeranalyzer.io/es/guias/ver-quien-te-dejo-de-seguir-instagram/</loc>
+    <lastmod>2026-11-20</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://followeranalyzer.io/guides/see-who-unfollowed-you-on-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://followeranalyzer.io/es/guias/ver-quien-te-dejo-de-seguir-instagram/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://followeranalyzer.io/guides/see-who-unfollowed-you-on-instagram/"/>
   </url>
 </urlset>
