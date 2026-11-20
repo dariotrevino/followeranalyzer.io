@@ -10,11 +10,13 @@
     Inline script is blocked, which is what stops a crafted export file from
     running code. Keep all JavaScript in .js files, never in this HTML.
   - connect-src: the only places this page can send data are Google Analytics
-    and the allorigins proxy used by the optional account lookup.
+    and the allorigins proxy used by the optional account lookup. Google's tag
+    sends some hits to google.com and doubleclick.net, so those are listed too
+    (Google's documented CSP for GA4); without them those visits go uncounted.
   If you add a new third-party script, font or API, add it here or it will be
   blocked (the browser console shows what was refused).
 -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://*.googletagmanager.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net; connect-src https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.googletagmanager.com https://*.google.com https://*.g.doubleclick.net https://api.allorigins.win; base-uri 'none'; form-action 'none'" />
 <title>Follower Analyzer — Who Doesn't Follow You Back on Instagram</title>
 <meta name="description" content="Free, unlimited Instagram follower analyzer. Find who you follow that does not follow you back, fans you do not follow, and mutuals. Runs in your browser. Your export files are never uploaded." />
 <link rel="canonical" href="https://followeranalyzer.io/" />
@@ -55,238 +57,255 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* Layout: a two-column hero (pitch left, the tool right) so the drop zone is
+     on the first screen; everything below is one centered column.
+     Type: Syne for headings, the system sans for reading, DM Mono only for
+     data (usernames, numbers, small labels). */
   :root {
     --bg: #0a0a0f;
-    --surface: #13131a;
-    --border: #1e1e2e;
+    --surface: #121219;
+    --surface-2: #181821;
+    --border: #23232f;
+    --border-strong: #31313f;
+    --text: #f0eee8;
+    --body: #b9b8c6;
+    --muted: #7d7d92;
     --accent: #ff5c5c;
     --accent2: #ff9a3c;
-    --text: #f0eee8;
-    --muted: #6b6b80;
     --green: #3cffa5;
     --blue: #5ca8ff;
+    --purple: #c084fc;
     --coffee: #ffdd00;
+    --display: 'Syne', 'Arial Black', sans-serif;
+    --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    --radius: 14px;
+    --radius-sm: 9px;
   }
 
-  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--body); font-family: var(--sans); font-size: 15px; line-height: 1.6; min-height: 100vh; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(900px 520px at 12% -8%, rgba(255,92,92,0.10), transparent 60%), radial-gradient(700px 480px at 100% 0%, rgba(92,168,255,0.06), transparent 60%); pointer-events: none; z-index: 0; }
+  body > * { position: relative; z-index: 1; }
+  a { color: var(--accent2); text-underline-offset: 3px; }
+  a:hover { color: var(--text); }
+  :focus-visible { outline: 2px solid var(--accent2); outline-offset: 3px; border-radius: 4px; }
+  strong { color: var(--text); font-weight: 600; }
+  code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; color: var(--text); }
+  .icon { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.4;
-  }
+  .container { max-width: 1120px; margin: 0 auto; padding: 0 24px 80px; }
+  .narrow { max-width: 820px; margin-left: auto; margin-right: auto; }
 
-  .container { max-width: 860px; margin: 0 auto; padding: 60px 24px 100px; }
+  /* ── Top bar ── */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 0; }
+  .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -0.01em; }
+  .brand svg { width: 28px; height: 28px; }
+  .brand:hover { color: var(--text); }
+  .topnav { display: flex; gap: 4px; }
+  .topnav a { color: var(--body); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 8px; transition: background 0.15s, color 0.15s; }
+  .topnav a:hover { background: var(--surface-2); color: var(--text); }
+  @media (max-width: 520px) { .topnav a.optional { display: none; } }
 
-  header { margin-bottom: 40px; animation: fadeUp 0.6s ease both; }
+  /* ── Hero ── */
+  .hero { display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr); gap: 56px; align-items: center; padding: 44px 0 64px; }
+  @media (max-width: 900px) { .hero { grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 20px 0 48px; } }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 18px; }
+  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(255,92,92,0.15); }
+  h1 { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 4.7vw, 54px); line-height: 1.02; letter-spacing: -0.03em; color: var(--text); margin-bottom: 20px; text-wrap: balance; }
+  h1 .hl { color: var(--accent); }
+  .lead { font-size: 17px; line-height: 1.65; color: var(--body); max-width: 520px; }
+  .trust { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+  .trust li { display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; color: var(--body); }
+  .trust li .icon { width: 20px; height: 20px; margin-top: 1px; color: var(--green); }
+  .trust a { color: var(--muted); font-size: 13px; }
+  .support-line { margin-top: 22px; font-size: 13.5px; color: var(--muted); }
+  .support-line strong { color: var(--text); font-weight: 600; }
+  .support-line a { color: var(--coffee); text-decoration: none; border-bottom: 1px dotted rgba(255,221,0,0.5); }
+  .support-line a:hover { border-bottom-style: solid; }
+  @media (max-width: 900px) { .hero .trust, .hero .support-line { display: none; } .trust-mobile { display: flex !important; } }
 
-  .eyebrow { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  /* ── The tool card ── */
+  .tool { background: linear-gradient(180deg, var(--surface-2), var(--surface)); border: 1px solid var(--border-strong); border-radius: 20px; padding: 22px; box-shadow: 0 24px 60px -24px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.02) inset; }
+  .tool-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .tool-title { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--text); }
+  .tool-head a { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 420px) { .tool-title { font-size: 15.5px; } }
+  .tool-head a:hover { color: var(--text); }
 
-  h1 {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(42px, 8vw, 72px);
-    font-weight: 800;
-    line-height: 0.95;
-    letter-spacing: -0.03em;
-    background: linear-gradient(135deg, var(--text) 40%, var(--muted));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 20px;
-  }
-
-  .subtitle { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 540px; }
-
-  /* Instructions */
-  .instructions {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px;
-    margin-bottom: 40px;
-    animation: fadeUp 0.6s 0.1s ease both;
-  }
-
-  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; }
-  .step:last-child { margin-bottom: 0; }
-
-  .step-num {
-    background: var(--border);
-    color: var(--accent);
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .step-body { flex: 1; }
-
-  /* Nested sub-steps for step 8 */
-  .substeps { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-
-  .substep {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    font-size: 11px;
-    color: var(--muted);
-    padding-left: 4px;
-    opacity: 0.85;
-  }
-
-  .substep-bullet {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--accent2);
-    flex-shrink: 0;
-    margin-top: 5px;
-  }
-
-  .tip {
-    margin-top: 18px;
-    padding: 12px 16px;
-    background: #1a1200;
-    border: 1px solid #2e2000;
-    border-radius: 8px;
-    font-size: 11px;
-    color: var(--accent2);
-    line-height: 1.6;
-  }
-
-  .tip strong { color: var(--accent2); }
-
-  /* Drop grid */
-  .drop-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 40px 28px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s, transform 0.15s; position: relative; background: var(--surface); margin-bottom: 16px; animation: fadeUp 0.6s 0.2s ease both; }
-  .drop-zone:hover { border-color: var(--accent); background: #1a0f0f; transform: translateY(-2px); }
-  .drop-zone.loaded { border-color: var(--green); border-style: solid; background: #0a1a12; }
-  .drop-zone.drag-over { border-color: var(--accent2); background: #1a1200; transform: scale(1.02); }
+  .drop-zone { position: relative; border: 1.5px dashed var(--border-strong); border-radius: var(--radius); padding: 34px 20px 26px; text-align: center; cursor: pointer; background: rgba(10,10,15,0.5); transition: border-color 0.2s, background 0.2s; }
+  .drop-zone:hover { border-color: var(--accent); background: rgba(255,92,92,0.05); }
+  .drop-zone.drag-over { border-color: var(--accent2); background: rgba(255,154,60,0.08); }
+  .drop-zone.loaded { border-color: var(--green); border-style: solid; background: rgba(60,255,165,0.05); }
+  .drop-zone.partial { border-color: var(--accent2); border-style: solid; background: rgba(255,154,60,0.06); }
   .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-
-  .drop-icon { font-size: 36px; margin-bottom: 12px; display: block; }
-  .drop-label { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 8px; }
-  .drop-hint { font-size: 11px; color: var(--muted); line-height: 1.6; max-width: 420px; margin: 0 auto; }
-  .drop-status { font-size: 11px; color: var(--green); margin-top: 8px; font-weight: 500; }
+  .drop-zone input[type="file"]:focus-visible + .drop-icon { outline: 2px solid var(--accent2); outline-offset: 4px; }
+  .drop-icon { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 14px; display: grid; place-items: center; background: rgba(255,92,92,0.12); color: var(--accent); }
+  .drop-icon .icon { width: 24px; height: 24px; }
+  .drop-zone.loaded .drop-icon { background: rgba(60,255,165,0.12); color: var(--green); }
+  .drop-label { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--text); margin-bottom: 6px; }
+  .drop-label .browse { color: var(--accent); }
+  .drop-hint { font-size: 13px; color: var(--muted); line-height: 1.55; max-width: 360px; margin: 0 auto; }
+  .drop-status-wrap { margin-top: 12px; display: flex; flex-direction: column; gap: 3px; align-items: center; }
+  .drop-status { font-family: var(--mono); font-size: 12px; color: var(--green); }
+  .drop-status:empty { display: none; }
   .drop-status.error { color: var(--accent); }
-  #uploadNote { display: flex; flex-direction: column; gap: 4px; align-items: center; max-width: 520px; line-height: 1.5; }
+  .drop-status.warn { color: var(--accent2); }
+  #uploadNote { display: flex; flex-direction: column; gap: 4px; align-items: center; max-width: 440px; line-height: 1.5; }
   #uploadNote:empty { display: none; }
-  .reset-row { text-align: right; margin: -4px 0 14px; }
 
-  /* Analyze button */
-  .analyze-btn { width: 100%; padding: 18px; background: var(--accent); color: #fff; border: none; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 0.05em; cursor: pointer; transition: opacity 0.2s, transform 0.15s; margin-bottom: 48px; animation: fadeUp 0.6s 0.3s ease both; }
-  .analyze-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
-  .analyze-btn:not(:disabled):hover { opacity: 0.9; transform: translateY(-2px); }
+  .analyze-btn { width: 100%; margin-top: 14px; padding: 16px; background: var(--accent); color: #fff; border: none; border-radius: 12px; font-family: var(--display); font-size: 16px; font-weight: 700; letter-spacing: 0.01em; cursor: pointer; box-shadow: 0 10px 30px -10px rgba(255,92,92,0.6); transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s, background 0.2s; }
+  .analyze-btn:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 14px 34px -10px rgba(255,92,92,0.75); }
+  .analyze-btn:disabled { background: var(--surface-2); color: var(--muted); box-shadow: none; cursor: not-allowed; border: 1px solid var(--border); }
+  .reset-row { text-align: center; margin-top: 10px; }
+  .tool-foot { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+  .tool-foot .icon { width: 15px; height: 15px; color: var(--green); }
+  .text-btn { font-family: var(--sans); font-size: 13px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .text-btn:hover { color: var(--text); }
+  .trust-mobile { display: none !important; list-style: none; flex-wrap: wrap; gap: 8px 14px; margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+  .trust-mobile li { display: inline-flex; align-items: center; gap: 6px; }
+  .trust-mobile .icon { width: 14px; height: 14px; color: var(--green); }
 
-  /* Results */
-  #results { display: none; animation: fadeUp 0.5s ease both; }
+  /* ── Restore banner ── */
+  .restore-banner { display: none; margin: 8px 0 0; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius); align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease both; }
+  .restore-banner.visible { display: flex; }
+  .restore-text { font-size: 14px; color: var(--body); }
+  .restore-text strong { color: var(--text); }
+  .restore-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .restore-btn, .restore-clear { padding: 8px 14px; border-radius: var(--radius-sm); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .restore-btn { border: 1px solid var(--green); background: transparent; color: var(--green); }
+  .restore-btn:hover { background: var(--green); color: #000; }
+  .restore-clear { border: 1px solid var(--border-strong); background: transparent; color: var(--muted); }
+  .restore-clear:hover { color: var(--text); }
 
-  .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 36px; }
-  @media (max-width: 700px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  /* ── Section headings ── */
+  .section { padding: 56px 0 0; }
+  .section-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent2); margin-bottom: 10px; }
+  .section h2 { font-family: var(--display); font-weight: 800; font-size: clamp(24px, 3.4vw, 32px); line-height: 1.15; letter-spacing: -0.02em; color: var(--text); margin-bottom: 24px; text-wrap: balance; }
 
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px 12px; text-align: center; }
-  .stat-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
-  .stat-num.red    { color: var(--accent); }
-  .stat-num.orange { color: var(--accent2); }
-  .stat-num.green  { color: var(--green); }
-  .stat-num.blue   { color: var(--blue); }
-  .stat-num.purple { color: #c084fc; }
-  .stat-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  /* ── How it works ── */
+  .steps-row { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; counter-reset: step; }
+  @media (max-width: 760px) { .steps-row { grid-template-columns: minmax(0, 1fr); } }
+  .steps-row li { counter-increment: step; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .steps-row li::before { content: counter(step); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--accent); font-family: var(--mono); font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+  .steps-row h3 { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--text); margin-bottom: 6px; }
+  .steps-row p { font-size: 14px; color: var(--body); }
+  .must { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 4px 10px; border-radius: 99px; background: rgba(255,154,60,0.1); border: 1px solid rgba(255,154,60,0.3); color: var(--accent2); font-size: 12.5px; font-weight: 500; }
 
-  /* Opt-in "remember this analysis" */
-  .remember-row { display: flex; align-items: flex-start; gap: 10px; margin: -12px 0 32px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.6; cursor: pointer; }
+  .instructions { margin-top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .instructions summary { list-style: none; cursor: pointer; padding: 16px 20px; font-family: var(--display); font-size: 15px; font-weight: 700; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 12px; user-select: none; }
+  .instructions summary::-webkit-details-marker { display: none; }
+  .instructions summary::after { content: '+'; font-size: 20px; color: var(--muted); font-weight: 400; font-family: var(--sans); }
+  .instructions[open] summary::after { content: '\2212'; }
+  .instructions summary:hover { color: var(--accent2); }
+  .instructions-body { padding: 0 20px 20px; }
+  .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; font-size: 14px; color: var(--body); line-height: 1.6; }
+  .step-num { background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--accent); width: 24px; height: 24px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+  .step-body { flex: 1; min-width: 0; }
+  .substeps { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .substep { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; }
+  .substep-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; margin-top: 8px; }
+  .tip { margin-top: 16px; padding: 12px 16px; background: rgba(255,154,60,0.07); border: 1px solid rgba(255,154,60,0.22); border-radius: var(--radius-sm); font-size: 13px; color: var(--body); line-height: 1.6; }
+
+  /* ── Results ── */
+  #results { display: none; padding-top: 24px; animation: fadeUp 0.5s ease both; scroll-margin-top: 16px; }
+
+  .summary { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 760px) { .summary { grid-template-columns: minmax(0, 1fr); } }
+  .summary-main { background: linear-gradient(140deg, rgba(255,92,92,0.14), rgba(255,92,92,0.02) 60%), var(--surface); border: 1px solid rgba(255,92,92,0.3); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; justify-content: center; }
+  .summary-main .stat-num { font-family: var(--display); font-weight: 800; font-size: clamp(56px, 9vw, 84px); line-height: 0.9; color: var(--accent); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .summary-main .stat-label { margin-top: 10px; font-size: 16px; color: var(--text); font-weight: 500; }
+  .summary-main .stat-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .stat-card .stat-num { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat-card .stat-label { margin-top: 8px; font-size: 13px; color: var(--muted); }
+  .stat-num.blue { color: var(--blue); } .stat-num.purple { color: var(--purple); } .stat-num.orange { color: var(--accent2); } .stat-num.green { color: var(--green); }
+
+  .remember-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 28px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); line-height: 1.55; cursor: pointer; }
   .remember-row strong { color: var(--text); font-weight: 500; }
-  .remember-row input { flex-shrink: 0; width: 15px; height: 15px; margin-top: 2px; accent-color: var(--green); cursor: pointer; }
+  .remember-row input { flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; accent-color: var(--green); cursor: pointer; }
 
-  /* Tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  .tab-btn { background: none; border: none; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
-  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
-  .tab-btn:hover:not(.active) { color: var(--text); }
-
-  .tab-count { display: inline-block; min-width: 22px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--border); border-radius: 20px; padding: 1px 8px; margin-left: 4px; vertical-align: 1px; text-align: center; }
+  /* Tabs: a segmented control; each tab carries its list's color */
+  .tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 18px; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: none; border: none; color: var(--muted); font-family: var(--sans); font-size: 14px; font-weight: 600; padding: 10px 14px; border-radius: 9px; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; }
+  .tab-btn::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--accent)); }
+  .tab-btn[data-tab="reverse"] { --dot: var(--blue); }
+  .tab-btn[data-tab="mutuals"] { --dot: var(--purple); }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { background: var(--surface-2); color: var(--text); box-shadow: 0 0 0 1px var(--border-strong) inset; }
+  .tab-count { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--muted); background: var(--bg); border-radius: 20px; padding: 1px 8px; }
   .tab-count:empty { display: none; }
   .tab-btn.active .tab-count { color: var(--text); }
 
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
-
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
+  .panel-title { font-family: var(--display); font-size: 17px; font-weight: 700; color: var(--text); }
   .panel-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; cursor: pointer; transition: border-color 0.2s; }
-  .sort-select:hover, .sort-select:focus { border-color: var(--accent2); }
-  @media (max-width: 480px) { .panel-controls, .search-box { width: 100%; } .search-box { flex: 1; width: auto; } }
-
-  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
-  .export-row .export-btn { margin-top: 0; }
-
-  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-  .panel-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
-
-  .search-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; width: 220px; transition: border-color 0.2s; }
-  .search-box:focus { border-color: var(--accent2); }
+  .search-box, .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-family: var(--sans); font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .search-box { width: 220px; }
   .search-box::placeholder { color: var(--muted); }
+  .sort-select { cursor: pointer; }
+  .search-box:focus, .sort-select:focus, .sort-select:hover { border-color: var(--accent2); }
+  @media (max-width: 520px) { .panel-controls { width: 100%; } .search-box { flex: 1; width: auto; min-width: 0; } }
 
-  /* User cards */
-  .user-list { display: flex; flex-direction: column; gap: 8px; }
-
-  .user-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; animation: fadeUp 0.4s ease both; transition: border-color 0.15s, background 0.15s; }
-  .user-card:hover { border-color: var(--accent); background: #1a0f0f; }
-  .user-card.blue-hover:hover { border-color: var(--blue); background: #0a1020; }
-
-  .user-info { display: flex; align-items: center; gap: 12px; }
-  .user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--border); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 13px; flex-shrink: 0; }
-  .user-avatar.blue { color: var(--blue); }
-  .username { font-size: 13px; font-weight: 500; }
-  .user-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-  .user-link { font-size: 11px; color: var(--muted); text-decoration: none; border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
-  .user-link:hover { border-color: var(--accent2); color: var(--accent2); }
-
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 13px; line-height: 1.8; }
-  .empty-state .big { font-size: 48px; margin-bottom: 12px; }
-
-  .export-btn { display: inline-flex; align-items: center; gap: 8px; margin-top: 28px; padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); background: transparent; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
-  .export-btn:hover { border-color: var(--accent2); color: var(--accent2); }
-
-  /* Verify bar */
-  .verify-bar { margin-top: 20px; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-  .verify-left { display: flex; flex-direction: column; gap: 4px; }
-  .verify-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
-  .verify-desc { font-size: 11px; color: var(--muted); line-height: 1.5; max-width: 460px; }
-  .verify-btn { padding: 9px 18px; background: transparent; border: 1px solid var(--accent2); border-radius: 8px; color: var(--accent2); font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
+  /* Account lookup: one compact row, details on request */
+  .verify-bar { margin-bottom: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .verify-left { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 240px; }
+  .verify-title { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; color: var(--text); }
+  .verify-title .icon { width: 16px; height: 16px; color: var(--accent2); }
+  .verify-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .verify-more { font-size: 13px; color: var(--muted); }
+  .verify-more summary { cursor: pointer; width: fit-content; text-decoration: underline; text-underline-offset: 3px; }
+  .verify-more summary:hover { color: var(--text); }
+  .verify-more p { margin-top: 6px; line-height: 1.55; }
+  .verify-note { color: var(--accent2); }
+  .verify-btn { padding: 9px 16px; background: transparent; border: 1px solid var(--accent2); border-radius: var(--radius-sm); color: var(--accent2); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s; flex-shrink: 0; }
   .verify-btn:hover { background: var(--accent2); color: #000; }
-  .verify-btn:disabled { opacity: 0.4; cursor: not-allowed; background: transparent; color: var(--accent2); }
-  .verify-progress { width: 100%; margin-top: 10px; display: none; }
-  .progress-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .verify-btn:disabled { opacity: 0.45; cursor: not-allowed; background: transparent; color: var(--accent2); }
+  .verify-progress { width: 100%; margin-top: 8px; display: none; }
+  .progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
   .progress-fill { height: 100%; background: var(--accent2); border-radius: 2px; transition: width 0.3s ease; width: 0%; }
-  .progress-text { font-size: 10px; color: var(--muted); }
+  .progress-text { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .status-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 5px; background: rgba(255,92,92,0.1); border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
+  .status-badge.muted { border-color: var(--muted); color: var(--muted); background: transparent; }
+  .status-badge.warn { border-color: var(--accent2); color: var(--accent2); background: transparent; }
+  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn { font-family: var(--sans); font-size: 13px; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+  .filter-btn.active { border-color: var(--accent); color: var(--text); background: rgba(255,92,92,0.12); }
+  .filter-btn:hover:not(.active) { border-color: var(--border-strong); color: var(--text); }
 
-  /* Account lookup badges */
-  .status-badge { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: #2a1010; border: 1px solid var(--accent); color: var(--accent); margin-left: 8px; white-space: nowrap; }
-  .status-badge.muted { border-color: var(--muted); color: var(--muted); }
-  .status-badge.warn { border-color: var(--accent2); color: var(--accent2); }
+  /* The account list: one card, rows separated by hairlines */
+  .user-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .user-list:empty { display: none; }
+  .user-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid var(--border); animation: fadeUp 0.35s ease both; transition: background 0.15s; }
+  .user-card:first-child { border-top: none; }
+  .user-card:hover { background: rgba(255,92,92,0.05); }
+  .user-card.blue-hover:hover { background: rgba(92,168,255,0.06); }
+  .user-card.mutual-hover:hover { background: rgba(192,132,252,0.06); }
+  .user-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .user-info > div:last-child { min-width: 0; }
+  .user-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(140deg, rgba(255,92,92,0.25), rgba(255,92,92,0.08)); color: var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 800; font-size: 14px; flex-shrink: 0; }
+  .user-avatar.blue { background: linear-gradient(140deg, rgba(92,168,255,0.25), rgba(92,168,255,0.08)); color: var(--blue); }
+  .user-avatar.purple { background: linear-gradient(140deg, rgba(192,132,252,0.25), rgba(192,132,252,0.08)); color: var(--purple); }
+  .username { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+  .user-meta { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .user-link { font-size: 13px; font-weight: 500; color: var(--body); text-decoration: none; border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 12px; transition: border-color 0.15s, color 0.15s, background 0.15s; white-space: nowrap; flex-shrink: 0; }
+  .user-link:hover { border-color: var(--accent2); color: var(--accent2); }
+  .empty-state { text-align: center; padding: 56px 20px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+  .empty-state .big { font-size: 40px; margin-bottom: 8px; }
 
-  /* Filter buttons */
-  .filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .filter-btn { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'DM Mono', monospace; transition: border-color 0.15s, color 0.15s, background 0.15s; }
-  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: #1a0f0f; }
-  .filter-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
+  .export-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .export-btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-family: var(--sans); font-size: 13px; font-weight: 500; color: var(--body); background: var(--surface); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+  .export-btn:hover { border-color: var(--accent2); color: var(--accent2); }
 
   /* ── Buy me a coffee ──
      Coffee buttons use Buy Me a Coffee's own yellow so visitors recognise it
      at a glance, and it is the only yellow on the page. */
-  .coffee-btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; background: var(--coffee); color: #0a0a0f; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 18px rgba(255,221,0,0.18); transition: transform 0.15s, box-shadow 0.15s; }
-  .coffee-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255,221,0,0.32); }
+  .coffee-btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; background: var(--coffee); color: #0a0a0f; border-radius: 11px; font-family: var(--display); font-size: 14px; font-weight: 800; letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 18px rgba(255,221,0,0.18); transition: transform 0.15s, box-shadow 0.15s; }
+  .coffee-btn:hover { color: #0a0a0f; transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255,221,0,0.32); }
   .coffee-btn:hover .cup, .coffee-float:hover .cup { animation: wiggle 0.6s ease; }
   .coffee-btn:focus-visible, .coffee-float:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
   .cup { display: inline-block; transform-origin: 50% 85%; }
@@ -294,8 +313,8 @@
   /* Floating button: always labelled on desktop. On phones it is just the cup
      (so it never covers the View Profile buttons) and opens for a few
      seconds after results appear (.peek, set by app.js). */
-  .coffee-float { position: fixed; bottom: 20px; right: 20px; z-index: 500; display: inline-flex; align-items: center; background: var(--coffee); color: #0a0a0f; border-radius: 999px; padding: 11px 18px 11px 14px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 6px 28px rgba(255,221,0,0.25), 0 2px 8px rgba(0,0,0,0.45); transition: transform 0.2s, box-shadow 0.2s; animation: floatIn 0.5s 1.2s ease both; }
-  .coffee-float:hover { transform: translateY(-3px); box-shadow: 0 10px 34px rgba(255,221,0,0.4), 0 2px 8px rgba(0,0,0,0.45); }
+  .coffee-float { position: fixed; bottom: 20px; right: 20px; z-index: 500; display: inline-flex; align-items: center; background: var(--coffee); color: #0a0a0f; border-radius: 999px; padding: 11px 18px 11px 14px; font-family: var(--display); font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 6px 28px rgba(255,221,0,0.25), 0 2px 8px rgba(0,0,0,0.45); transition: transform 0.2s, box-shadow 0.2s; animation: floatIn 0.5s 1.2s ease both; }
+  .coffee-float:hover { color: #0a0a0f; transform: translateY(-3px); box-shadow: 0 10px 34px rgba(255,221,0,0.4), 0 2px 8px rgba(0,0,0,0.45); }
   .coffee-float .cup { font-size: 18px; line-height: 1; }
   .coffee-float .coffee-text { margin-left: 8px; overflow: hidden; }
   @media (max-width: 600px) {
@@ -306,102 +325,87 @@
   }
 
   /* Post-analysis banner: shown right after results, the moment people are happiest */
-  .coffee-banner { display: none; position: relative; margin-bottom: 28px; padding: 22px 48px 22px 22px; background: radial-gradient(120% 140% at 0% 0%, rgba(255,221,0,0.10) 0%, rgba(255,221,0,0) 55%), var(--surface); border: 1px solid rgba(255,221,0,0.28); border-radius: 14px; gap: 18px; align-items: flex-start; animation: fadeUp 0.5s ease both; }
+  .coffee-banner { display: none; position: relative; margin-bottom: 18px; padding: 22px 48px 22px 22px; background: radial-gradient(120% 140% at 0% 0%, rgba(255,221,0,0.10) 0%, rgba(255,221,0,0) 55%), var(--surface); border: 1px solid rgba(255,221,0,0.28); border-radius: var(--radius); gap: 18px; align-items: flex-start; animation: fadeUp 0.5s ease both; }
   .coffee-banner.visible { display: flex; }
   .banner-cup { font-size: 34px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
   .banner-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .banner-hook { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.3; }
-  .banner-text { font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 560px; }
+  .banner-hook { font-family: var(--display); font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.3; }
+  .banner-text { font-size: 14px; color: var(--body); line-height: 1.65; max-width: 600px; }
   .banner-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
-  .banner-share-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .banner-share-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; background: transparent; color: var(--body); border: 1px solid var(--border-strong); border-radius: 11px; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
   .banner-share-btn:hover { border-color: var(--muted); color: var(--text); }
-  .banner-dismiss { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; padding: 2px 6px; line-height: 1; transition: color 0.15s; }
+  .banner-dismiss { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 22px; padding: 2px 6px; line-height: 1; transition: color 0.15s; }
   .banner-dismiss:hover { color: var(--text); }
   @media (max-width: 480px) { .banner-cup { display: none; } .coffee-banner { padding: 20px 40px 20px 18px; } }
 
   /* Second chance for people who scroll to the end of their list */
-  .support-card { margin-top: 40px; padding: 20px 22px; border: 1px dashed rgba(255,221,0,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .support-card p { font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 440px; }
-  .support-card strong { color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; }
+  .support-card { margin-top: 32px; padding: 20px 22px; border: 1px dashed rgba(255,221,0,0.3); border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .support-card p { font-size: 14px; color: var(--body); line-height: 1.6; max-width: 460px; }
+  .support-card strong { color: var(--text); font-family: var(--display); font-size: 15px; }
   .support-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-  /* Quiet link in the header */
-  .support-line { margin-top: 14px; font-size: 11px; color: var(--muted); }
-  .support-line a { color: var(--coffee); text-decoration: none; border-bottom: 1px dotted rgba(255,221,0,0.5); }
-  .support-line a:hover { border-bottom-style: solid; }
-
-  @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 50% { transform: rotate(10deg); } 75% { transform: rotate(-6deg); } }
-  @keyframes floatIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .cup, .coffee-float, .coffee-banner { animation: none !important; } }
-
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-
-  .privacy-blurb { margin-top: 16px; display: inline-flex; align-items: flex-start; gap: 10px; padding: 10px 14px; background: #0a1a12; border: 1px solid #1a3a28; border-radius: 8px; font-size: 11px; color: var(--green); line-height: 1.55; max-width: 540px; }
-  .privacy-blurb strong { color: var(--text); }
-  .privacy-blurb a { color: var(--text); text-underline-offset: 3px; }
-  .restore-banner { display: none; margin-bottom: 24px; padding: 14px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease both; }
-  .restore-banner.visible { display: flex; }
-  .restore-text { font-size: 12px; color: var(--muted); line-height: 1.5; }
-  .restore-text strong { color: var(--text); }
-  .restore-actions { display: flex; gap: 8px; flex-shrink: 0; }
-  .restore-btn { padding: 7px 14px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: 1px solid var(--green); background: transparent; color: var(--green); }
-  .restore-btn:hover { background: var(--green); color: #000; }
-  .restore-clear { padding: 7px 12px; border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); }
-  .restore-clear:hover { border-color: var(--muted); color: var(--text); }
-  .callout { margin-bottom: 16px; padding: 12px 16px; background: #1a1200; border: 1px solid #2e2000; border-radius: 8px; font-size: 12px; color: var(--accent2); line-height: 1.6; animation: fadeUp 0.6s 0.08s ease both; }
-  .guide-skip { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; animation: fadeUp 0.6s 0.1s ease both; }
-  .skip-link { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: 'DM Mono', monospace; text-decoration: underline; text-underline-offset: 3px; }
-  .skip-link:hover { color: var(--text); }
-  .instructions { padding: 0; overflow: hidden; }
-  .instructions summary { list-style: none; cursor: pointer; padding: 18px 28px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); display: flex; align-items: center; justify-content: space-between; gap: 12px; user-select: none; }
-  .instructions summary::-webkit-details-marker { display: none; }
-  .instructions summary::after { content: '+'; font-size: 18px; color: var(--muted); font-weight: 400; }
-  .instructions[open] summary::after { content: '\2212'; }
-  .instructions-body { padding: 0 28px 28px; }
-  .drop-zone.partial { border-color: var(--accent2); border-style: solid; background: #1a1200; }
-  .drop-status-wrap { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; align-items: center; }
-  .drop-status.warn { color: var(--accent2); }
-  .user-card.mutual-hover:hover { border-color: #c084fc; background: #140a20; }
-  .user-avatar.purple { color: #c084fc; }
-  .verify-note { font-size: 10px; color: var(--accent2); line-height: 1.5; max-width: 460px; margin-top: 2px; }
-
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  /* FAQ */
-  .faq { margin-top: 72px; }
-  .faq h2 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 20px; }
-  .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
-  .faq-item summary { cursor: pointer; padding: 16px 20px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  /* ── FAQ ── */
+  .faq-list { display: flex; flex-direction: column; gap: 8px; }
+  .faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.15s; }
+  .faq-item[open] { border-color: var(--border-strong); }
+  .faq-item summary { cursor: pointer; padding: 16px 20px; font-size: 15px; font-weight: 600; color: var(--text); list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
   .faq-item summary::-webkit-details-marker { display: none; }
-  .faq-item summary::after { content: '+'; color: var(--accent); font-size: 20px; font-weight: 400; flex-shrink: 0; transition: transform 0.2s; }
+  .faq-item summary::after { content: '+'; color: var(--accent); font-size: 22px; font-weight: 400; flex-shrink: 0; transition: transform 0.2s; }
   .faq-item[open] summary::after { transform: rotate(45deg); }
   .faq-item summary:hover { color: var(--accent2); }
-  .faq-answer { padding: 0 20px 18px; font-size: 12px; color: var(--muted); line-height: 1.75; }
-  .support-line strong { color: var(--text); font-weight: 500; }
+  .faq-answer { padding: 0 20px 18px; font-size: 14.5px; color: var(--body); line-height: 1.7; }
 
-  /* Guides: a short link list under the FAQ, kept light so the page stays a tool */
-  .guides { margin-top: 48px; }
-  .guides h2 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent2); margin-bottom: 14px; }
-  .guides ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
-  .guides li { font-size: 13px; line-height: 1.6; }
-  .guides a { color: var(--text); text-underline-offset: 3px; text-decoration-color: var(--border); }
-  .guides a:hover { color: var(--accent2); }
-  .guides .guide-lang { margin-left: 8px; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; text-decoration: none; white-space: nowrap; }
+  /* ── Guides ── */
+  .guide-cards { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 700px) { .guide-cards { grid-template-columns: minmax(0, 1fr); } }
+  .guide-card { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; transition: border-color 0.15s, transform 0.15s; }
+  .guide-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .guide-card a.guide-main { color: var(--text); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.35; display: block; padding-right: 24px; }
+  .guide-card a.guide-main::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
+  .guide-card .arrow { position: absolute; top: 18px; right: 18px; color: var(--accent); }
+  .guide-card .guide-lang { position: relative; z-index: 1; display: inline-block; margin-top: 10px; font-size: 12px; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 6px; padding: 2px 8px; text-decoration: none; }
+  .guide-card .guide-lang:hover { color: var(--text); }
+
+  /* ── Footer ── */
+  .site-footer { margin-top: 72px; padding: 28px 0 0; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; font-size: 13px; color: var(--muted); }
+  .site-footer nav { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+  .site-footer a { color: var(--body); text-decoration: none; }
+  .site-footer a:hover { color: var(--text); }
+  .site-footer p { max-width: 520px; line-height: 1.6; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 50% { transform: rotate(10deg); } 75% { transform: rotate(-6deg); } }
+  @keyframes floatIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 </style>
 </head>
 <body>
+<!-- Icon set, drawn once and reused with <use> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-infinity" viewBox="0 0 24 24"><path d="M6.5 8.5C4 8.5 2.5 10.2 2.5 12s1.5 3.5 4 3.5c3.5 0 7.5-7 11-7 2.5 0 4 1.7 4 3.5s-1.5 3.5-4 3.5c-3.5 0-7.5-7-11-7z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
+    <symbol id="logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#181821"/><circle cx="12.3" cy="16" r="7.6" fill="#ff5c5c"/><circle cx="19.7" cy="16" r="7.6" fill="#181821" stroke="#f0eee8" stroke-width="2.4"/></symbol>
+  </defs>
+</svg>
+
 <div class="container">
 
-  <header>
-    <p class="eyebrow">Instagram · Follower Analyzer</p>
-    <h1>Follower<br>Analyzer</h1>
-    <p class="subtitle">Find out who you follow that doesn't follow you back — and who follows you that you don't follow back. Drop your Instagram export ZIP or files below.</p>
-    <div class="privacy-blurb">
-      <span>🔒</span>
-      <span><strong>Your export stays on your device.</strong> It is read and compared here in your browser. The files are never uploaded, and nothing is saved unless you ask. <a href="#faq-privacy">What does leave the page?</a></span>
-    </div>
-    <p class="support-line"><strong>Free and unlimited.</strong> No ads, no sign-up. If it helps, consider <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">buying me a coffee</a>.</p>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Follower Analyzer home"><svg aria-hidden="true"><use href="#logo"/></svg>Follower Analyzer</a>
+    <nav class="topnav" aria-label="Page">
+      <a href="#how" class="optional">How it works</a>
+      <a href="#guides" class="optional">Guides</a>
+      <a href="#faq">FAQ</a>
+    </nav>
   </header>
 
   <div class="restore-banner" id="restoreBanner">
@@ -415,66 +419,50 @@
     </div>
   </div>
 
-  <div class="callout" id="dateRangeCallout">
-    <strong>Important:</strong> When exporting from Instagram, set <strong>Date range → All time</strong>. Any other range will make your counts incomplete.
-  </div>
+  <section class="hero">
+    <div class="pitch">
+      <p class="eyebrow">Instagram follower checker</p>
+      <h1>See who doesn't <span class="hl">follow you back</span></h1>
+      <p class="lead">Drop the data export Instagram gives you and get three lists in seconds: who doesn't follow you back, who you don't follow back, and your mutuals.</p>
+      <ul class="trust">
+        <li><svg class="icon"><use href="#i-lock"/></svg><span><strong>Your files stay on your device.</strong> They're read in your browser and never uploaded. <a href="#faq-privacy">What does leave the page?</a></span></li>
+        <li><svg class="icon"><use href="#i-key"/></svg><span><strong>No login, no password.</strong> Nothing touches your Instagram account.</span></li>
+        <li><svg class="icon"><use href="#i-infinity"/></svg><span><strong>Free and unlimited.</strong> No ads, no sign-up, check as often as you like.</span></li>
+      </ul>
+      <p class="support-line">If it helps, consider <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">buying me a coffee</a>.</p>
+    </div>
 
-  <div class="guide-skip">
-    <span style="font-size:11px;color:var(--muted);">Need the export walkthrough?</span>
-    <button type="button" class="skip-link" id="skipToUpload">I've exported before — skip to upload ↓</button>
-  </div>
-
-  <details class="instructions" id="exportGuide">
-    <summary>How to export your Instagram data</summary>
-    <div class="instructions-body">
-
-    <div class="step"><span class="step-num">1</span><span class="step-body">Open Instagram and tap the <strong>hamburger menu</strong> (☰) in the top right</span></div>
-    <div class="step"><span class="step-num">2</span><span class="step-body">Tap <strong>Account Center</strong></span></div>
-    <div class="step"><span class="step-num">3</span><span class="step-body">Tap <strong>Your Information and Permissions</strong></span></div>
-    <div class="step"><span class="step-num">4</span><span class="step-body">Tap <strong>Export your information</strong>, then <strong>Create Export</strong></span></div>
-    <div class="step"><span class="step-num">5</span><span class="step-body">Select your <strong>profile</strong> and choose <strong>Export to Device</strong></span></div>
-    <div class="step">
-      <span class="step-num">6</span>
-      <span class="step-body">
-        Tap <strong>Customize export</strong> and configure three settings:
-        <div class="substeps">
-          <div class="substep"><div class="substep-bullet"></div><span><strong>Information:</strong> tap "Customize information", clear all, then select <strong>Connections &gt; Followers and Following</strong> only</span></div>
-          <div class="substep"><div class="substep-bullet"></div><span><strong>Date range:</strong> set to <strong>All time</strong> — this is critical, or your counts will be incomplete</span></div>
-          <div class="substep"><div class="substep-bullet"></div><span><strong>Format:</strong> choose either <strong>JSON</strong> or <strong>HTML</strong> — this app supports both</span></div>
+    <div class="tool" id="tool">
+      <div class="tool-head">
+        <span class="tool-title">Drop your Instagram export</span>
+        <a href="#how">Don't have it yet?</a>
+      </div>
+      <div class="drop-zone" id="uploadZone">
+        <input type="file" id="uploadFile" accept=".html,.htm,.json,.zip" multiple aria-label="Choose your Instagram export ZIP or files" />
+        <div class="drop-icon" aria-hidden="true"><svg class="icon"><use href="#i-upload"/></svg></div>
+        <div class="drop-label">Drop the ZIP here or <span class="browse">browse</span></div>
+        <div class="drop-hint">The .zip from Instagram, or the followers and following files inside it (JSON or HTML).</div>
+        <div class="drop-status-wrap">
+          <div class="drop-status" id="followersStatus"></div>
+          <div class="drop-status" id="followingStatus"></div>
+          <div class="drop-status" id="uploadStatus"></div>
+          <div id="uploadNote" aria-live="polite"></div>
         </div>
-      </span>
+      </div>
+      <div class="reset-row" id="resetRow" hidden>
+        <button type="button" class="text-btn" id="resetBtn">Clear files and start over</button>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" disabled>Analyze my followers</button>
+      <p class="tool-foot"><svg class="icon"><use href="#i-lock"/></svg>Analyzed on your device. Nothing is uploaded.</p>
+      <ul class="trust-mobile">
+        <li><svg class="icon"><use href="#i-key"/></svg>No login</li>
+        <li><svg class="icon"><use href="#i-infinity"/></svg>Free and unlimited</li>
+        <li><a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">Buy me a coffee ☕</a></li>
+      </ul>
     </div>
-    <div class="step"><span class="step-num">7</span><span class="step-body">Tap <strong>Start Export</strong> and wait for Instagram to process it (usually a few minutes, sometimes longer)</span></div>
-    <div class="step"><span class="step-num">8</span><span class="step-body"><strong>Download</strong> the ZIP when it's ready — you can drop the ZIP here as-is, or unzip and drop the followers / following files</span></div>
+  </section>
 
-    <div class="tip">
-      <strong>What we look for:</strong> Inside the ZIP, files under <code>connections/followers_and_following/</code>
-      (nested folder prefixes are fine). We load all <strong>followers_1</strong>, <strong>followers_2</strong>, … and <strong>following</strong>
-      in JSON or HTML. You can also drop those files directly — filenames are auto-routed.
-    </div>
-    </div>
-  </details>
-
-  <div class="drop-zone" id="uploadZone">
-    <input type="file" id="uploadFile" accept=".html,.htm,.json,.zip" multiple />
-    <span class="drop-icon">📦</span>
-    <div class="drop-label">Drop ZIP or files here</div>
-    <div class="drop-hint">Instagram export .zip, or followers_*.json/html + following.json/html<br>Files are matched by name. Anything else in the export is ignored.</div>
-    <div class="drop-status-wrap">
-      <div class="drop-status" id="followersStatus"></div>
-      <div class="drop-status" id="followingStatus"></div>
-      <div class="drop-status" id="uploadStatus"></div>
-      <div id="uploadNote" aria-live="polite"></div>
-    </div>
-  </div>
-
-  <div class="reset-row" id="resetRow" hidden>
-    <button type="button" class="skip-link" id="resetBtn">Clear files and start over</button>
-  </div>
-
-  <button class="analyze-btn" id="analyzeBtn" disabled>Analyze My Data</button>
-
-  <div id="results">
+  <div id="results" class="narrow">
     <!-- Post-analysis banner -->
     <div class="coffee-banner" id="coffeeBanner" role="region" aria-label="Support Follower Analyzer">
       <div class="banner-cup" aria-hidden="true">☕</div>
@@ -488,26 +476,18 @@
       </div>
       <button type="button" class="banner-dismiss" id="bannerDismiss" aria-label="Dismiss">×</button>
     </div>
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-num red" id="statGhosts">0</div>
-        <div class="stat-label">Not Following Back</div>
+
+    <div class="summary">
+      <div class="summary-main">
+        <div class="stat-num" id="statGhosts">0</div>
+        <div class="stat-label">don't follow you back</div>
+        <div class="stat-sub">People you follow who aren't in your followers.</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-num blue" id="statReverse">0</div>
-        <div class="stat-label">You Don't Follow Back</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num purple" id="statMutuals">0</div>
-        <div class="stat-label">Mutuals</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num orange" id="statFollowing">0</div>
-        <div class="stat-label">You Follow</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num green" id="statFollowers">0</div>
-        <div class="stat-label">Your Followers</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num blue" id="statReverse">0</div><div class="stat-label">You don't follow back</div></div>
+        <div class="stat-card"><div class="stat-num purple" id="statMutuals">0</div><div class="stat-label">Mutuals</div></div>
+        <div class="stat-card"><div class="stat-num orange" id="statFollowing">0</div><div class="stat-label">You follow</div></div>
+        <div class="stat-card"><div class="stat-num green" id="statFollowers">0</div><div class="stat-label">Your followers</div></div>
       </div>
     </div>
 
@@ -517,9 +497,9 @@
     </label>
 
     <div class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true">👻 Not Following You Back <span class="tab-count" id="countGhosts"></span></button>
-      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false">👀 You Don't Follow Back <span class="tab-count" id="countReverse"></span></button>
-      <button class="tab-btn" data-tab="mutuals" role="tab" aria-selected="false">🤝 Mutuals <span class="tab-count" id="countMutuals"></span></button>
+      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true">Not following you back <span class="tab-count" id="countGhosts"></span></button>
+      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false">You don't follow back <span class="tab-count" id="countReverse"></span></button>
+      <button class="tab-btn" data-tab="mutuals" role="tab" aria-selected="false">Mutuals <span class="tab-count" id="countMutuals"></span></button>
     </div>
 
     <div class="tab-panel active" id="panel-ghosts">
@@ -532,15 +512,18 @@
             <option value="az">Username A–Z</option>
             <option value="za">Username Z–A</option>
           </select>
-          <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." aria-label="Search usernames you follow who don&#39;t follow back" />
+          <input class="search-box" id="searchGhosts" type="search" placeholder="Search usernames" aria-label="Search usernames you follow who don&#39;t follow back" />
         </div>
       </div>
       <div class="verify-bar" id="verifyBar">
         <div class="verify-left">
-          <div class="verify-title">🔍 Look up accounts on Instagram</div>
-          <div class="verify-desc">Searches Instagram for each username on this list. “Not found” can mean the account is deleted or deactivated, but it can also be private or hidden from search, so open the profile to confirm.</div>
-          <div class="verify-desc">This sends these usernames to a public proxy (allorigins.win). It is the only feature that sends anything from your lists off your device, and it only runs when you press the button.</div>
-          <div class="verify-note">Many “unknown” results mean Instagram or the proxy blocked the lookups, not that your data is wrong. Try again later. Only the unknown ones are checked again.</div>
+          <div class="verify-title"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>Spot deleted or deactivated accounts</div>
+          <div class="verify-desc">Looks each username up on Instagram. “Not found” can also mean private or hidden from search, so open the profile to confirm.</div>
+          <details class="verify-more">
+            <summary>What this sends</summary>
+            <p>This sends these usernames to a public proxy (allorigins.win). It is the only feature that sends anything from your lists off your device, and it only runs when you press the button.</p>
+            <p class="verify-note">Many “unknown” results mean Instagram or the proxy blocked the lookups, not that your data is wrong. Try again later. Only the unknown ones are checked again.</p>
+          </details>
           <div class="verify-progress" id="verifyProgress">
             <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
             <div class="progress-text" id="progressText">Checking...</div>
@@ -571,7 +554,7 @@
             <option value="az">Username A–Z</option>
             <option value="za">Username Z–A</option>
           </select>
-          <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." aria-label="Search followers you don&#39;t follow back" />
+          <input class="search-box" id="searchReverse" type="search" placeholder="Search usernames" aria-label="Search followers you don&#39;t follow back" />
         </div>
       </div>
       <div class="user-list" id="listReverse"></div>
@@ -591,7 +574,7 @@
             <option value="az">Username A–Z</option>
             <option value="za">Username Z–A</option>
           </select>
-          <input class="search-box" id="searchMutuals" type="text" placeholder="Search usernames..." aria-label="Search mutuals" />
+          <input class="search-box" id="searchMutuals" type="search" placeholder="Search usernames" aria-label="Search mutuals" />
         </div>
       </div>
       <div class="user-list" id="listMutuals"></div>
@@ -610,8 +593,57 @@
     </div>
   </div>
 
-  <section class="faq" id="faq">
+  <section class="section narrow" id="how">
+    <p class="section-kicker">How it works</p>
+    <h2>Three steps, about five minutes</h2>
+    <ol class="steps-row">
+      <li>
+        <h3>Request your export</h3>
+        <p>In Instagram's Accounts Center, export only <strong>Followers and following</strong>.</p>
+        <span class="must">Set date range to All time</span>
+      </li>
+      <li>
+        <h3>Drop the ZIP here</h3>
+        <p>Instagram emails you when it's ready. Drop the ZIP as-is; there's nothing to unzip.</p>
+      </li>
+      <li>
+        <h3>See your lists</h3>
+        <p>Who doesn't follow you back, who you don't follow back, and mutuals. Sort, search and export them.</p>
+      </li>
+    </ol>
+
+    <details class="instructions" id="exportGuide">
+      <summary>Step-by-step: export your data from Instagram</summary>
+      <div class="instructions-body">
+        <div class="step"><span class="step-num">1</span><span class="step-body">Open Instagram and tap the <strong>menu</strong> (☰) in the top right</span></div>
+        <div class="step"><span class="step-num">2</span><span class="step-body">Tap <strong>Accounts Center</strong></span></div>
+        <div class="step"><span class="step-num">3</span><span class="step-body">Tap <strong>Your information and permissions</strong></span></div>
+        <div class="step"><span class="step-num">4</span><span class="step-body">Tap <strong>Export your information</strong>, then <strong>Create export</strong></span></div>
+        <div class="step"><span class="step-num">5</span><span class="step-body">Select your <strong>profile</strong> and choose <strong>Export to device</strong></span></div>
+        <div class="step">
+          <span class="step-num">6</span>
+          <span class="step-body">
+            Tap <strong>Customize export</strong> and set three things:
+            <div class="substeps">
+              <div class="substep"><div class="substep-bullet"></div><span><strong>Information:</strong> tap "Customize information", clear all, then select <strong>Connections &gt; Followers and following</strong> only</span></div>
+              <div class="substep"><div class="substep-bullet"></div><span><strong>Date range:</strong> set to <strong>All time</strong>. This is critical, or your counts will be incomplete</span></div>
+              <div class="substep"><div class="substep-bullet"></div><span><strong>Format:</strong> choose <strong>JSON</strong> or <strong>HTML</strong>. Both work</span></div>
+            </div>
+          </span>
+        </div>
+        <div class="step"><span class="step-num">7</span><span class="step-body">Tap <strong>Start export</strong> and wait for Instagram to process it (usually a few minutes, sometimes longer)</span></div>
+        <div class="step"><span class="step-num">8</span><span class="step-body"><strong>Download</strong> the ZIP when it's ready and <a href="#tool">drop it above</a>. You can also unzip it and drop just the followers and following files</span></div>
+        <div class="tip">
+          <strong>What we look for:</strong> files under <code>connections/followers_and_following/</code> in the ZIP (nested folders are fine). We load every <strong>followers_1</strong>, <strong>followers_2</strong>, … and <strong>following</strong> file, in JSON or HTML. Files dropped on their own are matched by name.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="section narrow" id="faq">
+    <p class="section-kicker">FAQ</p>
     <h2>Frequently asked questions</h2>
+    <div class="faq-list">
     <details class="faq-item">
       <summary>How do I see who doesn't follow me back on Instagram?</summary>
       <div class="faq-answer">Export your followers and following data from Instagram (Account Center, then Your Information and Permissions, then Export your information) with the date range set to <strong>All time</strong>. Drop the ZIP, or the followers and following files, onto this page. You'll get three lists: people who don't follow you back, people you don't follow back, and mutuals.</div>
@@ -648,15 +680,35 @@
       <summary>Is Follower Analyzer free?</summary>
       <div class="faq-answer">Yes, free and unlimited. Check as often as you like, with no account, no app to install, no payment and no limit on how many times you run it. If it helped you, you can <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="faq">buy me a coffee</a>, but you never have to.</div>
     </details>
+    </div>
   </section>
 
-  <nav class="guides" aria-label="Guides">
-    <h2>Guides</h2>
-    <ul>
-      <li><a href="/guides/instagram-unfollow-notifications/">Does Instagram notify someone when you unfollow them?</a> <a class="guide-lang" href="/es/guias/notificaciones-dejar-de-seguir-instagram/" hreflang="es" lang="es">Español</a></li>
-      <li><a href="/guides/see-who-unfollowed-you-on-instagram/">How to see who unfollowed you on Instagram</a> <a class="guide-lang" href="/es/guias/ver-quien-te-dejo-de-seguir-instagram/" hreflang="es" lang="es">Español</a></li>
+  <section class="section narrow" id="guides">
+    <p class="section-kicker">Guides</p>
+    <h2>More about followers and unfollows</h2>
+    <ul class="guide-cards">
+      <li class="guide-card">
+        <a class="guide-main" href="/guides/instagram-unfollow-notifications/">Does Instagram notify someone when you unfollow them?</a>
+        <svg class="icon arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        <a class="guide-lang" href="/es/guias/notificaciones-dejar-de-seguir-instagram/" hreflang="es" lang="es">Español</a>
+      </li>
+      <li class="guide-card">
+        <a class="guide-main" href="/guides/see-who-unfollowed-you-on-instagram/">How to see who unfollowed you on Instagram</a>
+        <svg class="icon arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+        <a class="guide-lang" href="/es/guias/ver-quien-te-dejo-de-seguir-instagram/" hreflang="es" lang="es">Español</a>
+      </li>
     </ul>
-  </nav>
+  </section>
+
+  <footer class="site-footer narrow">
+    <p>Follower Analyzer is a free, private tool. Your export is analyzed in your browser and never uploaded. Not affiliated with or endorsed by Instagram or Meta.</p>
+    <nav aria-label="Footer">
+      <a href="#how">How it works</a>
+      <a href="#faq">FAQ</a>
+      <a href="#faq-privacy">Privacy</a>
+      <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="footer">Buy me a coffee</a>
+    </nav>
+  </footer>
 
 </div>
 

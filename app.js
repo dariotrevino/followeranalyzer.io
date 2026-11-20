@@ -420,11 +420,15 @@ uploadZone.addEventListener('drop', e => {
   handleIncomingFiles(e.dataTransfer.files);
 });
 
-document.getElementById('skipToUpload').addEventListener('click', () => {
-  document.getElementById('exportGuide').open = false;
-  uploadZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  uploadZone.classList.add('drag-over');
-  setTimeout(() => uploadZone.classList.remove('drag-over'), 800);
+// Links that jump back up to the tool also flash the drop zone, so it's
+// obvious where the file goes.
+document.querySelectorAll('a[href="#tool"]').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    uploadZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    uploadZone.classList.add('drag-over');
+    setTimeout(() => uploadZone.classList.remove('drag-over'), 900);
+  });
 });
 
 
