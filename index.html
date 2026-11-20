@@ -144,7 +144,6 @@
   .drop-icon .icon { width: 24px; height: 24px; }
   .drop-zone.loaded .drop-icon { background: rgba(60,255,165,0.12); color: var(--green); }
   .drop-label { font-family: var(--display); font-weight: 700; font-size: 17px; color: var(--text); margin-bottom: 6px; }
-  .drop-label .browse { color: var(--accent); }
   .drop-hint { font-size: 13px; color: var(--muted); line-height: 1.55; max-width: 360px; margin: 0 auto; }
   .drop-status-wrap { margin-top: 12px; display: flex; flex-direction: column; gap: 3px; align-items: center; }
   .drop-status { font-family: var(--mono); font-size: 12px; color: var(--green); }
@@ -434,13 +433,13 @@
 
     <div class="tool" id="tool">
       <div class="tool-head">
-        <span class="tool-title">Drop your Instagram export</span>
+        <span class="tool-title">Add your Instagram export</span>
         <a href="#how">Don't have it yet?</a>
       </div>
       <div class="drop-zone" id="uploadZone">
         <input type="file" id="uploadFile" accept=".html,.htm,.json,.zip" multiple aria-label="Choose your Instagram export ZIP or files" />
         <div class="drop-icon" aria-hidden="true"><svg class="icon"><use href="#i-upload"/></svg></div>
-        <div class="drop-label">Drop the ZIP here or <span class="browse">browse</span></div>
+        <div class="drop-label">Add your ZIP here</div>
         <div class="drop-hint">The .zip from Instagram, or the followers and following files inside it (JSON or HTML).</div>
         <div class="drop-status-wrap">
           <div class="drop-status" id="followersStatus"></div>
