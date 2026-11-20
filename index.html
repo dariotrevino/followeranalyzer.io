@@ -59,6 +59,7 @@
     --muted: #6b6b80;
     --green: #3cffa5;
     --blue: #5ca8ff;
+    --coffee: #ffdd00;
   }
 
   body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
@@ -207,8 +208,20 @@
   .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
   .tab-btn:hover:not(.active) { color: var(--text); }
 
+  .tab-count { display: inline-block; min-width: 22px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--border); border-radius: 20px; padding: 1px 8px; margin-left: 4px; vertical-align: 1px; text-align: center; }
+  .tab-count:empty { display: none; }
+  .tab-btn.active .tab-count { color: var(--text); }
+
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  .panel-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sort-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; cursor: pointer; transition: border-color 0.2s; }
+  .sort-select:hover, .sort-select:focus { border-color: var(--accent2); }
+  @media (max-width: 480px) { .panel-controls, .search-box { width: 100%; } .search-box { flex: 1; width: auto; } }
+
+  .export-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+  .export-row .export-btn { margin-top: 0; }
 
   .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
   .panel-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
@@ -263,25 +276,57 @@
   .filter-btn.active { border-color: var(--accent); color: var(--accent); background: #1a0f0f; }
   .filter-btn:hover:not(.active) { border-color: var(--muted); color: var(--text); }
 
-  /* Floating coffee button */
-  .coffee-float { position: fixed; bottom: 24px; right: 24px; z-index: 500; display: flex; align-items: center; gap: 0px; background: var(--accent2); border-radius: 50px; padding: 12px 13px; cursor: pointer; text-decoration: none; box-shadow: 0 4px 24px rgba(255,154,60,0.35); transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
-  .coffee-float:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,154,60,0.5); }
-  .coffee-float .coffee-icon { font-size: 20px; line-height: 1; display: block; flex-shrink: 0; }
-  .coffee-float .coffee-text { font-family: 'DM Mono', monospace; font-size: 11px; color: #000; font-weight: 500; max-width: 0; overflow: hidden; transition: max-width 0.3s ease, margin-left 0.3s ease; pointer-events: none; }
-  .coffee-float:hover .coffee-text { max-width: 140px; margin-left: 8px; }
+  /* ── Buy me a coffee ──
+     Coffee buttons use Buy Me a Coffee's own yellow so visitors recognise it
+     at a glance, and it is the only yellow on the page. */
+  .coffee-btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; background: var(--coffee); color: #0a0a0f; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 0.01em; text-decoration: none; white-space: nowrap; box-shadow: 0 4px 18px rgba(255,221,0,0.18); transition: transform 0.15s, box-shadow 0.15s; }
+  .coffee-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255,221,0,0.32); }
+  .coffee-btn:hover .cup, .coffee-float:hover .cup { animation: wiggle 0.6s ease; }
+  .coffee-btn:focus-visible, .coffee-float:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .cup { display: inline-block; transform-origin: 50% 85%; }
 
-  /* Post-analysis banner */
-  .coffee-banner { display: none; margin-bottom: 28px; padding: 18px 22px; background: linear-gradient(135deg, #1a1200 0%, #13131a 100%); border: 1px solid #2e2000; border-radius: 12px; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; animation: fadeUp 0.5s 0.3s ease both; }
+  /* Floating button: always labelled on desktop. On phones it is just the cup
+     (so it never covers the View Profile buttons) and opens for a few
+     seconds after results appear (.peek, set by app.js). */
+  .coffee-float { position: fixed; bottom: 20px; right: 20px; z-index: 500; display: inline-flex; align-items: center; background: var(--coffee); color: #0a0a0f; border-radius: 999px; padding: 11px 18px 11px 14px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; box-shadow: 0 6px 28px rgba(255,221,0,0.25), 0 2px 8px rgba(0,0,0,0.45); transition: transform 0.2s, box-shadow 0.2s; animation: floatIn 0.5s 1.2s ease both; }
+  .coffee-float:hover { transform: translateY(-3px); box-shadow: 0 10px 34px rgba(255,221,0,0.4), 0 2px 8px rgba(0,0,0,0.45); }
+  .coffee-float .cup { font-size: 18px; line-height: 1; }
+  .coffee-float .coffee-text { margin-left: 8px; overflow: hidden; }
+  @media (max-width: 600px) {
+    .coffee-float { bottom: 16px; right: 16px; padding: 12px; }
+    .coffee-float .coffee-text { max-width: 0; margin-left: 0; transition: max-width 0.4s ease, margin-left 0.4s ease; }
+    .coffee-float.peek .coffee-text { max-width: 170px; margin-left: 8px; }
+    .coffee-float.peek .cup { animation: wiggle 0.6s 0.2s ease; }
+  }
+
+  /* Post-analysis banner: shown right after results, the moment people are happiest */
+  .coffee-banner { display: none; position: relative; margin-bottom: 28px; padding: 22px 48px 22px 22px; background: radial-gradient(120% 140% at 0% 0%, rgba(255,221,0,0.10) 0%, rgba(255,221,0,0) 55%), var(--surface); border: 1px solid rgba(255,221,0,0.28); border-radius: 14px; gap: 18px; align-items: flex-start; animation: fadeUp 0.5s ease both; }
   .coffee-banner.visible { display: flex; }
-  .banner-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
-  .banner-text strong { color: var(--text); }
-  .banner-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-  .banner-coffee-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; background: var(--accent2); color: #000; border: none; border-radius: 8px; font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; transition: opacity 0.15s, transform 0.15s; white-space: nowrap; }
-  .banner-coffee-btn:hover { opacity: 0.88; transform: translateY(-1px); }
-  .banner-share-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
+  .banner-cup { font-size: 34px; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+  .banner-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .banner-hook { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; color: var(--text); line-height: 1.3; }
+  .banner-text { font-size: 12px; color: var(--muted); line-height: 1.7; max-width: 560px; }
+  .banner-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+  .banner-share-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 16px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; font-family: 'DM Mono', monospace; font-size: 12px; cursor: pointer; transition: border-color 0.15s, color 0.15s; white-space: nowrap; }
   .banner-share-btn:hover { border-color: var(--muted); color: var(--text); }
-  .banner-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 0 4px; line-height: 1; transition: color 0.15s; flex-shrink: 0; }
+  .banner-dismiss { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; padding: 2px 6px; line-height: 1; transition: color 0.15s; }
   .banner-dismiss:hover { color: var(--text); }
+  @media (max-width: 480px) { .banner-cup { display: none; } .coffee-banner { padding: 20px 40px 20px 18px; } }
+
+  /* Second chance for people who scroll to the end of their list */
+  .support-card { margin-top: 40px; padding: 20px 22px; border: 1px dashed rgba(255,221,0,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .support-card p { font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 440px; }
+  .support-card strong { color: var(--text); font-family: 'Syne', sans-serif; font-size: 14px; }
+  .support-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* Quiet link in the header */
+  .support-line { margin-top: 14px; font-size: 11px; color: var(--muted); }
+  .support-line a { color: var(--coffee); text-decoration: none; border-bottom: 1px dotted rgba(255,221,0,0.5); }
+  .support-line a:hover { border-bottom-style: solid; }
+
+  @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 50% { transform: rotate(10deg); } 75% { transform: rotate(-6deg); } }
+  @keyframes floatIn { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .cup, .coffee-float, .coffee-banner { animation: none !important; } }
 
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -340,6 +385,7 @@
       <span>🔒</span>
       <span><strong>Your export stays on your device.</strong> It is read and compared here in your browser. The files are never uploaded, and nothing is saved unless you ask. <a href="#faq-privacy">What does leave the page?</a></span>
     </div>
+    <p class="support-line">Free, no ads, no sign-up. If it helps, consider <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="header">buying me a coffee</a>.</p>
   </header>
 
   <div class="restore-banner" id="restoreBanner">
@@ -414,16 +460,17 @@
 
   <div id="results">
     <!-- Post-analysis banner -->
-    <div class="coffee-banner" id="coffeeBanner">
-      <div class="banner-text">
-        <strong>Glad this was useful!</strong> Follower Analyzer is free and runs entirely in your browser.
-        If it saved you some time, a coffee goes a long way — or just share it with someone who'd want it.
+    <div class="coffee-banner" id="coffeeBanner" role="region" aria-label="Support Follower Analyzer">
+      <div class="banner-cup" aria-hidden="true">☕</div>
+      <div class="banner-body">
+        <div class="banner-hook" id="bannerHook">Glad this was useful!</div>
+        <p class="banner-text">Hi, I'm Dario. I made Follower Analyzer and keep it free, ad-free, and private: it never asks for your password and never uploads your files. If it saved you some scrolling, a coffee helps keep it running.</p>
+        <div class="banner-actions">
+          <a class="coffee-btn" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="results_banner"><span class="cup" aria-hidden="true">☕</span> Buy me a coffee</a>
+          <button type="button" class="banner-share-btn" data-share="results_banner">↗ Share with a friend</button>
+        </div>
       </div>
-      <div class="banner-actions">
-        <a class="banner-coffee-btn" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener">☕ Buy me a coffee</a>
-        <button class="banner-share-btn" id="shareBtn">↗ Share</button>
-        <button class="banner-dismiss" id="bannerDismiss" title="Dismiss">×</button>
-      </div>
+      <button type="button" class="banner-dismiss" id="bannerDismiss" aria-label="Dismiss">×</button>
     </div>
     <div class="stats-row">
       <div class="stat-card">
@@ -453,16 +500,24 @@
       <span><strong>Remember this analysis on this device.</strong> <span id="rememberHint">Off by default. It is saved only in this browser, so leave it off on a shared computer.</span></span>
     </label>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="ghosts">👻 Not Following You Back</button>
-      <button class="tab-btn" data-tab="reverse">👀 You Don't Follow Back</button>
-      <button class="tab-btn" data-tab="mutuals">🤝 Mutuals</button>
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="ghosts" role="tab" aria-selected="true">👻 Not Following You Back <span class="tab-count" id="countGhosts"></span></button>
+      <button class="tab-btn" data-tab="reverse" role="tab" aria-selected="false">👀 You Don't Follow Back <span class="tab-count" id="countReverse"></span></button>
+      <button class="tab-btn" data-tab="mutuals" role="tab" aria-selected="false">🤝 Mutuals <span class="tab-count" id="countMutuals"></span></button>
     </div>
 
     <div class="tab-panel active" id="panel-ghosts">
       <div class="panel-header">
         <div class="panel-title">People you follow who don't follow back</div>
-        <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." />
+        <div class="panel-controls">
+          <select class="sort-select" id="sortGhosts" aria-label="Sort this list">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Username A–Z</option>
+            <option value="za">Username Z–A</option>
+          </select>
+          <input class="search-box" id="searchGhosts" type="text" placeholder="Search usernames..." aria-label="Search usernames you follow who don&#39;t follow back" />
+        </div>
       </div>
       <div class="verify-bar" id="verifyBar">
         <div class="verify-left">
@@ -484,25 +539,58 @@
         <button class="filter-btn" data-filter="unknown" data-list="ghosts">Unknown / unchecked</button>
       </div>
       <div class="user-list" id="listGhosts"></div>
-      <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
+      <div class="export-row">
+        <button class="export-btn" id="exportGhosts">⬇ Export as CSV</button>
+        <button class="export-btn" type="button" data-copy="ghosts">⧉ Copy usernames</button>
+      </div>
     </div>
 
     <div class="tab-panel" id="panel-reverse">
       <div class="panel-header">
         <div class="panel-title">People following you that you don't follow back</div>
-        <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." />
+        <div class="panel-controls">
+          <select class="sort-select" id="sortReverse" aria-label="Sort this list">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Username A–Z</option>
+            <option value="za">Username Z–A</option>
+          </select>
+          <input class="search-box" id="searchReverse" type="text" placeholder="Search usernames..." aria-label="Search followers you don&#39;t follow back" />
+        </div>
       </div>
       <div class="user-list" id="listReverse"></div>
-      <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
+      <div class="export-row">
+        <button class="export-btn" id="exportReverse">⬇ Export as CSV</button>
+        <button class="export-btn" type="button" data-copy="reverse">⧉ Copy usernames</button>
+      </div>
     </div>
 
     <div class="tab-panel" id="panel-mutuals">
       <div class="panel-header">
         <div class="panel-title">People you follow who also follow you back</div>
-        <input class="search-box" id="searchMutuals" type="text" placeholder="Search usernames..." />
+        <div class="panel-controls">
+          <select class="sort-select" id="sortMutuals" aria-label="Sort this list">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Username A–Z</option>
+            <option value="za">Username Z–A</option>
+          </select>
+          <input class="search-box" id="searchMutuals" type="text" placeholder="Search usernames..." aria-label="Search mutuals" />
+        </div>
       </div>
       <div class="user-list" id="listMutuals"></div>
-      <button class="export-btn" id="exportMutuals">⬇ Export as CSV</button>
+      <div class="export-row">
+        <button class="export-btn" id="exportMutuals">⬇ Export as CSV</button>
+        <button class="export-btn" type="button" data-copy="mutuals">⧉ Copy usernames</button>
+      </div>
+    </div>
+
+    <div class="support-card">
+      <p><strong>Found what you were looking for?</strong><br>Follower Analyzer is free and ad-free, kept running by coffees from people it helped.</p>
+      <div class="support-actions">
+        <a class="coffee-btn" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="results_end"><span class="cup" aria-hidden="true">☕</span> Buy me a coffee</a>
+        <button type="button" class="banner-share-btn" data-share="results_end">↗ Share</button>
+      </div>
     </div>
   </div>
 
@@ -522,7 +610,7 @@
     </details>
     <details class="faq-item" id="faq-privacy">
       <summary>What information leaves my browser?</summary>
-      <div class="faq-answer">Your export files, and the lists built from them, are never uploaded. Two things do use the network. First, the page loads Google Analytics to count visits. It sees the usual visit details (browser, device, rough location) and nothing from your export. Second, if you press <strong>Check accounts</strong>, the usernames on your Not Following You Back list are sent to a public proxy (allorigins.win) so they can be looked up on Instagram. That only happens when you press the button. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
+      <div class="faq-answer">Your export files, and the lists built from them, are never uploaded. Two things do use the network. First, the page loads Google Analytics to count visits and which steps and buttons get used, such as finishing an analysis, exporting a list or clicking Buy me a coffee. It sees the usual visit details (browser, device, rough location) and nothing from your export: no usernames, no file names and no list sizes. Second, if you press <strong>Check accounts</strong>, the usernames on your Not Following You Back list are sent to a public proxy (allorigins.win) so they can be looked up on Instagram. That only happens when you press the button. Nothing is saved in your browser either, unless you tick <strong>Remember this analysis</strong>.</div>
     </details>
     <details class="faq-item">
       <summary>Why don't my numbers match the Instagram app?</summary>
@@ -534,7 +622,7 @@
     </details>
     <details class="faq-item">
       <summary>Is Follower Analyzer free?</summary>
-      <div class="faq-answer">Yes. There's no account, no app to install and no payment.</div>
+      <div class="faq-answer">Yes. There's no account, no app to install and no payment. If it helped you, you can <a href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="faq">buy me a coffee</a>, but you never have to.</div>
     </details>
   </section>
 
@@ -588,7 +676,7 @@
       "name": "What information leaves my browser?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Your export files, and the lists built from them, are never uploaded. The page loads Google Analytics to count visits, which sees the usual visit details and nothing from your export. If you press Check accounts, the usernames on your Not Following You Back list are sent to a public proxy so they can be looked up on Instagram. Nothing is saved in your browser unless you tick Remember this analysis."
+        "text": "Your export files, and the lists built from them, are never uploaded. The page loads Google Analytics to count visits and which buttons get used, which sees the usual visit details and nothing from your export. If you press Check accounts, the usernames on your Not Following You Back list are sent to a public proxy so they can be looked up on Instagram. Nothing is saved in your browser unless you tick Remember this analysis."
       }
     },
     {
@@ -622,8 +710,8 @@
 <script src="app.js"></script>
 
 <!-- Floating coffee button -->
-<a class="coffee-float" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener">
-  <span class="coffee-icon">☕</span>
+<a class="coffee-float" href="https://buymeacoffee.com/dariotrevino" target="_blank" rel="noopener" data-coffee="floating" aria-label="Buy me a coffee">
+  <span class="cup" aria-hidden="true">☕</span>
   <span class="coffee-text">Buy me a coffee</span>
 </a>
 </body>

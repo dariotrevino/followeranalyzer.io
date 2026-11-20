@@ -58,11 +58,16 @@ function usernameFromHref(href) {
 
 // The only shape a user record is allowed to have. The profile link is always
 // rebuilt from the validated username, never copied from the file.
-function makeUser(username, date) {
+// ts is the follow time in milliseconds (0 if unknown), used for sorting.
+function makeUser(username, date, ts) {
+  const cleanDate = typeof date === 'string' ? date.trim().slice(0, 40) : '';
+  let time = Number(ts);
+  if (!Number.isFinite(time) || time <= 0) time = Date.parse(cleanDate) || 0;
   return {
     username,
     href: 'https://www.instagram.com/' + username,
-    date: typeof date === 'string' ? date.trim().slice(0, 40) : ''
+    date: cleanDate,
+    ts: time > 0 ? time : 0
   };
 }
 
@@ -75,9 +80,21 @@ function sanitizeUsers(list) {
     const name = cleanUsername(u && u.username);
     if (!name || seen.has(name)) continue;
     seen.add(name);
-    out.push(makeUser(name, u.date));
+    out.push(makeUser(name, u.date, u.ts));
   }
   return out;
+}
+
+// ── Usage counts ───────────────────────────────────────────────────────────
+//
+// Tells Google Analytics which steps and buttons are used, so we can see how
+// many visitors finish an analysis or click Buy me a coffee. Only the event
+// name and a fixed label from this file are sent. Never usernames, list
+// sizes, file names or anything else read from an export.
+function track(name, params) {
+  try {
+    if (typeof window.gtag === 'function') window.gtag('event', name, params || {});
+  } catch {}
 }
 
 function esc(value) {
@@ -139,12 +156,16 @@ function parseJSON(jsonText) {
     seen.add(username);
 
     let dateText = '';
+    let ts = 0;
     const stamp = Number(entry?.timestamp);
     if (Number.isFinite(stamp) && stamp > 0) {
       const d = new Date(stamp * 1000);
-      if (!isNaN(d)) dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      if (!isNaN(d)) {
+        dateText = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        ts = stamp * 1000;
+      }
     }
-    users.push(makeUser(username, dateText));
+    users.push(makeUser(username, dateText, ts));
   };
 
   // Followers: top-level array
@@ -344,7 +365,15 @@ async function processDrop(files) {
   updateZoneUI();
   showDropNotes();
   uploadFile.value = '';   // lets the same file be picked again after a reset
+
+  if (followersData && followingData && !filesReadyTracked) {
+    filesReadyTracked = true;
+    track('files_ready');
+  }
 }
+
+// files_ready is counted once per analysis, not once per dropped file.
+let filesReadyTracked = false;
 
 // Drops are handled one at a time so two quick drops cannot interleave.
 let dropQueue = Promise.resolve();
@@ -366,6 +395,7 @@ function startOver() {
   mutualList = [];
   totals = { following: null, followers: null };
   analyzed = false;
+  filesReadyTracked = false;
 
   dropNotes.length = 0;
   showDropNotes();
@@ -420,14 +450,32 @@ function runAnalysis(options) {
 
   resetLookup();
   document.getElementById('results').style.display = 'block';
-  renderList(ghostList,   'listGhosts',  'ghost');
-  renderList(reverseList, 'listReverse', 'reverse');
-  renderList(mutualList,  'listMutuals', 'mutual');
+  renderAllLists();
   document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   if (!options.fromRestore) {
     syncSavedAnalysis();
-    setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 1200);
+    track('analysis_completed');
+    showSupportPrompts();
+  }
+}
+
+// The moment someone sees their results is when they are most grateful, so
+// that is when the coffee prompts appear. The banner names how many accounts
+// they just found; that number is only shown on the page, never sent anywhere.
+function showSupportPrompts() {
+  const n = ghostList.length;
+  document.getElementById('bannerHook').textContent = n === 0
+    ? 'Everyone you follow follows you back. Nice.'
+    : 'You just found ' + n.toLocaleString() + (n === 1 ? ' account that doesn’t' : ' accounts that don’t') + ' follow you back.';
+  setTimeout(() => document.getElementById('coffeeBanner').classList.add('visible'), 900);
+
+  // Nudge the floating button open for a few seconds so phone visitors, who
+  // cannot hover, see what the little cup is.
+  const float = document.querySelector('.coffee-float');
+  if (float) {
+    setTimeout(() => float.classList.add('peek'), 2500);
+    setTimeout(() => float.classList.remove('peek'), 8000);
   }
 }
 
@@ -550,9 +598,7 @@ function offerRestore() {
     resetLookup();
 
     document.getElementById('results').style.display = 'block';
-    renderList(ghostList,   'listGhosts',  'ghost');
-    renderList(reverseList, 'listReverse', 'reverse');
-    renderList(mutualList,  'listMutuals', 'mutual');
+    renderAllLists();
     banner.classList.remove('visible');
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     analyzed = true;
@@ -615,18 +661,95 @@ function userCardHTML(u, i, opts) {
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
   });
 });
 
-document.getElementById('searchReverse').addEventListener('input', function() {
-  renderList(reverseList.filter(u => u.username.includes(this.value.toLowerCase())), 'listReverse', 'reverse');
-});
-document.getElementById('searchMutuals').addEventListener('input', function() {
-  renderList(mutualList.filter(u => u.username.includes(this.value.toLowerCase())), 'listMutuals', 'mutual');
+
+// ── Search, filter and sort ────────────────────────────────────────────────
+
+const LISTS = {
+  ghosts:  { search: 'searchGhosts',  sort: 'sortGhosts',  count: 'countGhosts',  el: 'listGhosts',  mode: 'ghost',   get: () => ghostList },
+  reverse: { search: 'searchReverse', sort: 'sortReverse', count: 'countReverse', el: 'listReverse', mode: 'reverse', get: () => reverseList },
+  mutuals: { search: 'searchMutuals', sort: 'sortMutuals', count: 'countMutuals', el: 'listMutuals', mode: 'mutual',  get: () => mutualList }
+};
+
+// Array sort is stable, so accounts with no date keep the export's own order.
+function sortUsers(list, mode) {
+  const out = list.slice();
+  if (mode === 'az')          out.sort((a, b) => a.username.localeCompare(b.username));
+  else if (mode === 'za')     out.sort((a, b) => b.username.localeCompare(a.username));
+  else if (mode === 'oldest') out.sort((a, b) => (a.ts || Infinity) - (b.ts || Infinity));
+  else                        out.sort((a, b) => (b.ts || 0) - (a.ts || 0));   // newest first
+  return out;
+}
+
+// The accounts currently on screen for one list, after search, filter and sort.
+function visibleList(name) {
+  const cfg = LISTS[name];
+  const q = document.getElementById(cfg.search).value.toLowerCase();
+  let list = cfg.get().filter(u => u.username.includes(q));
+  if (name === 'ghosts') {
+    if (currentGhostFilter === 'found') list = list.filter(u => lookupStatus[u.username] === 'found');
+    else if (currentGhostFilter === 'notfound') list = list.filter(u => lookupStatus[u.username] === 'notfound');
+    else if (currentGhostFilter === 'unknown') list = list.filter(u => !hasAnswer(u.username));
+  }
+  return sortUsers(list, document.getElementById(cfg.sort).value);
+}
+
+function renderNamedList(name) {
+  if (name === 'ghosts') { renderGhostListWithStatus(); return; }
+  renderList(visibleList(name), LISTS[name].el, LISTS[name].mode);
+}
+
+function renderAllLists() {
+  for (const name of Object.keys(LISTS)) {
+    document.getElementById(LISTS[name].count).textContent = LISTS[name].get().length.toLocaleString();
+    renderNamedList(name);
+  }
+}
+
+for (const name of Object.keys(LISTS)) {
+  document.getElementById(LISTS[name].search).addEventListener('input', () => renderNamedList(name));
+  document.getElementById(LISTS[name].sort).addEventListener('change', () => renderNamedList(name));
+}
+
+
+// ── Copy usernames ─────────────────────────────────────────────────────────
+
+// Copies what is on screen, so a search or the "Not found in search" filter
+// narrows what gets copied.
+async function copyUsernames(name, btn) {
+  const list = visibleList(name);
+  const text = list.map(u => '@' + u.username).join('\n');
+  const label = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch {
+    // Older browsers: copy from a hidden text box instead.
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+  }
+  btn.textContent = ok ? '✓ Copied ' + list.length.toLocaleString() : '✗ Copy failed';
+  clearTimeout(btn._reset);
+  btn._reset = setTimeout(() => { btn.textContent = label; }, 1800);
+  if (ok) track('copy_usernames', { list: name });
+}
+
+document.querySelectorAll('[data-copy]').forEach(btn => {
+  btn.addEventListener('click', () => copyUsernames(btn.dataset.copy, btn));
 });
 
 // Usernames and links are validated, so only the free-text date needs care:
@@ -646,23 +769,38 @@ function exportCSV(list, filename) {
   a.click();
 }
 
-document.getElementById('exportGhosts').addEventListener('click',  () => exportCSV(ghostList,   'not_following_back.csv'));
-document.getElementById('exportReverse').addEventListener('click', () => exportCSV(reverseList, 'not_followed_back.csv'));
-document.getElementById('exportMutuals').addEventListener('click', () => exportCSV(mutualList,  'mutuals.csv'));
+document.getElementById('exportGhosts').addEventListener('click',  () => { exportCSV(ghostList,   'not_following_back.csv'); track('csv_export', { list: 'ghosts' }); });
+document.getElementById('exportReverse').addEventListener('click', () => { exportCSV(reverseList, 'not_followed_back.csv'); track('csv_export', { list: 'reverse' }); });
+document.getElementById('exportMutuals').addEventListener('click', () => { exportCSV(mutualList,  'mutuals.csv');           track('csv_export', { list: 'mutuals' }); });
 
 document.getElementById('bannerDismiss').addEventListener('click', () => {
   document.getElementById('coffeeBanner').classList.remove('visible');
+  track('coffee_banner_dismissed');
 });
 
-document.getElementById('shareBtn').addEventListener('click', () => {
-  const text = 'I just found out who doesn\'t follow me back on Instagram using Follower Analyzer — runs entirely in your browser, no login needed.';
-  const url = window.location.href;
-  if (navigator.share) {
-    navigator.share({ title: 'Follower Analyzer', text, url }).catch(() => {});
-  } else {
-    const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + ' ' + url);
-    window.open(tweetUrl, '_blank', 'noopener');
-  }
+// Every Buy me a coffee link carries data-coffee="<where it is on the page>",
+// so the reports show which placement people actually click. Listening on the
+// document also covers the floating button, which comes after this script.
+document.addEventListener('click', e => {
+  const link = e.target.closest('[data-coffee]');
+  if (link) track('coffee_click', { placement: link.dataset.coffee });
+});
+
+// Always share the home page, not whatever #section the visitor is on.
+const SHARE_URL = 'https://followeranalyzer.io/';
+
+document.querySelectorAll('[data-share]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = 'I just found out who doesn\'t follow me back on Instagram using Follower Analyzer — runs entirely in your browser, no login needed.';
+    if (navigator.share) {
+      track('share_click', { method: 'native', placement: btn.dataset.share });
+      navigator.share({ title: 'Follower Analyzer', text, url: SHARE_URL }).catch(() => {});
+    } else {
+      track('share_click', { method: 'twitter', placement: btn.dataset.share });
+      const tweetUrl = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + ' ' + SHARE_URL);
+      window.open(tweetUrl, '_blank', 'noopener');
+    }
+  });
 });
 
 // ── Account lookup ─────────────────────────────────────────────────────────
@@ -705,6 +843,7 @@ async function startVerification() {
   if (verifyRunning || !ghostList.length) return;
   verifyRunning = true;
   const run = lookupRun;
+  track('account_lookup_started');
 
   const btn = document.getElementById('verifyBtn');
   const progress = document.getElementById('verifyProgress');
@@ -794,14 +933,15 @@ const STATUS_BADGES = {
 };
 
 function renderGhostListWithStatus() {
-  const searchQ = document.getElementById('searchGhosts').value.toLowerCase();
-  let list = ghostList.filter(u => u.username.includes(searchQ));
-
-  if (currentGhostFilter === 'found') list = list.filter(u => lookupStatus[u.username] === 'found');
-  else if (currentGhostFilter === 'notfound') list = list.filter(u => lookupStatus[u.username] === 'notfound');
-  else if (currentGhostFilter === 'unknown') list = list.filter(u => !hasAnswer(u.username));
-
+  const list = visibleList('ghosts');
   const el = document.getElementById('listGhosts');
+
+  // Nothing to filter yet: show the same "everyone follows you back" message
+  // as the other lists.
+  if (list.length === 0 && Object.keys(lookupStatus).length === 0) {
+    renderList(list, 'listGhosts', 'ghost');
+    return;
+  }
   if (list.length === 0) {
     el.innerHTML = '<div class="empty-state"><div class="big">🎉</div>No accounts match this filter.</div>';
     return;
@@ -820,12 +960,4 @@ document.addEventListener('click', e => {
   btn.classList.add('active');
   currentGhostFilter = btn.dataset.filter;
   renderGhostListWithStatus();
-});
-
-document.getElementById('searchGhosts').addEventListener('input', function() {
-  if (Object.keys(lookupStatus).length > 0) {
-    renderGhostListWithStatus();
-  } else {
-    renderList(ghostList.filter(u => u.username.includes(this.value.toLowerCase())), 'listGhosts', 'ghost');
-  }
 });
